@@ -5,12 +5,14 @@
  * @format
  */
 
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet,Text } from 'react-native';
-import { PaperProvider } from 'react-native-paper';
+import { useState, useEffect } from 'react';
+import { StyleSheet } from 'react-native';
+import { PaperProvider, BottomNavigation } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
+
+// Import screens from their own files
 import SplashScreen from './src/screens/SplashScreen';
 import LocationPermissionScreen from './src/screens/LocationPermissionScreen';
 import LanguageSelectionScreen from './src/screens/LanguageSelectionScreen';
@@ -20,12 +22,52 @@ import OnboardingScreen3 from './src/screens/OnboardingScreen3';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import RegisterOTPScreen from './src/screens/RegisterOTPScreen';
-import { red200 } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
+import HomeScreen from './src/screens/HomeScreen';
+import RidesScreen from './src/screens/RidesScreen';
+import ChatScreen from './src/screens/ChatScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
+
+
+// --- Main App with Bottom Navigation ---
+const MainAppScreen = () => {
+  const [index, setIndex] = useState(0);
+  const [profileVisible, setProfileVisible] = useState(false);
+  
+  const [routes] = useState([
+    { key: 'home', title: 'Home', focusedIcon: 'home', unfocusedIcon: 'home-outline'},
+    { key: 'rides', title: 'Rides', focusedIcon: 'car', unfocusedIcon: 'car-outline' },
+    { key: 'chat', title: 'Chat', focusedIcon: 'message', unfocusedIcon: 'message-outline' },
+  ]);
+
+  const renderScene = ({ route }: { route: { key: string } }) => {
+    switch (route.key) {
+      case 'home':
+        return <HomeScreen onProfilePress={() => setProfileVisible(true)} />;
+      case 'rides':
+        return <RidesScreen />;
+      case 'chat':
+        return <ChatScreen />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <>
+      <BottomNavigation
+        navigationState={{ index, routes }}
+        onIndexChange={setIndex}
+        renderScene={renderScene}
+      />
+      <ProfileScreen visible={profileVisible} onClose={() => setProfileVisible(false)} />
+    </>
+  );
+};
+
 
 const AppNavigator: React.FC = () => {
-  const { theme } = useTheme();
-  const [currentScreen, setCurrentScreen] = useState<string>('Splash');
-  const [isLoading, setIsLoading] = useState(true);
+  const [currentScreen, setCurrentScreen] = useState<string>(''); // Default screen is determined by checks
+  const [isLoading, setIsLoading] = useState(true); // This state now controls the splash screen
   const [userPhoneNumber, setUserPhoneNumber] = useState<string>('');
 
   useEffect(() => {
@@ -52,13 +94,12 @@ const AppNavigator: React.FC = () => {
       }
     } catch (error) {
       console.error('Error checking initial route:', error);
-    } finally {
-      setIsLoading(false);
+      setCurrentScreen('Login'); // Fallback to login on error
     }
   };
-
+  
   const handleSplashFinish = () => {
-    checkInitialRoute();
+    setIsLoading(false);
   };
 
   const handleLanguageSelected = () => {
@@ -94,7 +135,7 @@ const AppNavigator: React.FC = () => {
   const handleLoginSuccess = async () => {
     try {
       await AsyncStorage.setItem('isLoggedIn', 'true');
-      setCurrentScreen('Main'); // Redirect to Onboarding after login
+      setCurrentScreen('Main'); // Redirect to Main App after login
     } catch (error) {
       console.error('Error saving login state:', error);
     }
@@ -109,12 +150,8 @@ const AppNavigator: React.FC = () => {
   };
 
   const handleRegisterSuccess = async (phoneNumber: string) => {
-    try {
-      setUserPhoneNumber(phoneNumber);
-      setCurrentScreen('RegisterOTP');
-    } catch (error) {
-      console.error('Error saving registration data:', error);
-    }
+    setUserPhoneNumber(phoneNumber);
+    setCurrentScreen('RegisterOTP');
   };
 
   const handleOTPVerified = async () => {
@@ -130,68 +167,42 @@ const AppNavigator: React.FC = () => {
     setCurrentScreen('Register');
   };
 
-  if (isLoading || currentScreen === 'Splash') {
+  if (isLoading) {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
-  if (currentScreen === 'LanguageSelection') {
-    return <LanguageSelectionScreen onLanguageSelected={handleLanguageSelected} />;
+  switch (currentScreen) {
+    case 'LanguageSelection':
+      return <LanguageSelectionScreen onLanguageSelected={handleLanguageSelected} />;
+    case 'LocationPermission':
+      return <LocationPermissionScreen onPermissionGranted={handlePermissionGranted} />;
+    case 'Onboarding1':
+      return <OnboardingScreen1 onContinue={handleOnboarding1Continue} />;
+    case 'Onboarding2':
+      return <OnboardingScreen2 onContinue={handleOnboarding2Continue} />;
+    case 'Onboarding3':
+      return <OnboardingScreen3 onContinue={handleOnboarding3Continue} />;
+    case 'Login':
+      return <LoginScreen onLoginSuccess={handleLoginSuccess} onNavigateToRegister={handleNavigateToRegister} />;
+    case 'Register':
+      return <RegisterScreen onRegisterSuccess={handleRegisterSuccess} onNavigateToLogin={handleNavigateToLogin} />;
+    case 'RegisterOTP':
+      return (
+        <RegisterOTPScreen 
+          onOTPVerified={handleOTPVerified} 
+          onNavigateBack={handleNavigateBackFromOTP}
+          phoneNumber={userPhoneNumber}
+        />
+      );
+    case 'Main':
+        return <MainAppScreen />;
+    default:
+        return null; 
   }
-
-  if (currentScreen === 'LocationPermission') {
-    return <LocationPermissionScreen onPermissionGranted={handlePermissionGranted} />;
-  }
-
-  if (currentScreen === 'Onboarding1') {
-    return <OnboardingScreen1 onContinue={handleOnboarding1Continue} />;
-  }
-
-  if (currentScreen === 'Onboarding2') {
-    return <OnboardingScreen2 onContinue={handleOnboarding2Continue} />;
-  }
-
-  if (currentScreen === 'Onboarding3') {
-    return <OnboardingScreen3 onContinue={handleOnboarding3Continue} />;
-  }
-
-  if (currentScreen === 'Login') {
-    return <LoginScreen onLoginSuccess={handleLoginSuccess} onNavigateToRegister={handleNavigateToRegister} />;
-  }
-
-  if (currentScreen === 'Register') {
-    return <RegisterScreen onRegisterSuccess={handleRegisterSuccess} onNavigateToLogin={handleNavigateToLogin} />;
-  }
-
-  if (currentScreen === 'RegisterOTP') {
-    return (
-      <RegisterOTPScreen 
-        onOTPVerified={handleOTPVerified} 
-        onNavigateBack={handleNavigateBackFromOTP}
-        phoneNumber={userPhoneNumber}
-      />
-    );
-  }
-
-  // Main app screen placeholder
-  return (
-    <View style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>
-      {/* Main app content will go here */}
-      <Text style={{ color: '#f50000ff' }}>Welcome to Hello Captain Rider!</Text>
-    </View>
-  );
 };
-
-const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
 
 const AppContent: React.FC = () => {
   const { theme } = useTheme();
-
   return (
     <PaperProvider theme={theme}>
       <AppNavigator />
