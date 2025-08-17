@@ -1,4 +1,4 @@
-package com.hellocaptainrider
+package com.hellocaptain.ridernew
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

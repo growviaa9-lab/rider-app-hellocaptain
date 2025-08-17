@@ -1,0 +1,260 @@
+{
+  "project_info": {
+    "project_number": "1054776721386",
+    "firebase_url": "https://hello-captain-2cec6-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "hello-captain-2cec6",
+    "storage_bucket": "hello-captain-2cec6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1054776721386:android:3044a4ced4fad3cea77c93",
+        "android_client_info": {
+          "package_name": "com.hellocaptain.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1054776721386-2vpq1jchdv19n11effomcv60eicrstnn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEcpX9t5Ton_a6ZL6_fxea-ArGd6xiNaw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1054776721386-2vpq1jchdv19n11effomcv60eicrstnn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1054776721386-2eq6rp0vhm14aa5uokej3j24d5s36ug7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.helloCaptainUser",
+                "app_store_id": "6746385821"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1054776721386:android:54ee4f4aaebfadd2a77c93",
+        "android_client_info": {
+          "package_name": "com.hellocaptain.rider"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1054776721386-4onfn6uihs78cr15svij6kqtj0hq1ho5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hellocaptain.rider",
+            "certificate_hash": "781243977137f9df963686b5e7a370072696b3a5"
+          }
+        },
+        {
+          "client_id": "1054776721386-apq47hfijeu9fjgp8h82ki0c83bb9pvr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hellocaptain.rider",
+            "certificate_hash": "3544d485d5eb9704f8599da26226a51455dbe6c6"
+          }
+        },
+        {
+          "client_id": "1054776721386-2vpq1jchdv19n11effomcv60eicrstnn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEcpX9t5Ton_a6ZL6_fxea-ArGd6xiNaw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1054776721386-2vpq1jchdv19n11effomcv60eicrstnn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1054776721386-2eq6rp0vhm14aa5uokej3j24d5s36ug7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.helloCaptainUser",
+                "app_store_id": "6746385821"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1054776721386:android:321961c33279128da77c93",
+        "android_client_info": {
+          "package_name": "com.hellocaptain.ridernew"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1054776721386-28l3fsv2fll048jun3nofrplak4j304i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hellocaptain.ridernew",
+            "certificate_hash": "6f901b4fdc4bc53161323cc5ee979808392a601c"
+          }
+        },
+        {
+          "client_id": "1054776721386-sfa9pn6pffsk1gdsnponh85q8q5dtjcf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hellocaptain.ridernew",
+            "certificate_hash": "e27df9119b6dd71233f4c478af87f16fa3ecd358"
+          }
+        },
+        {
+          "client_id": "1054776721386-2vpq1jchdv19n11effomcv60eicrstnn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEcpX9t5Ton_a6ZL6_fxea-ArGd6xiNaw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1054776721386-2vpq1jchdv19n11effomcv60eicrstnn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1054776721386-2eq6rp0vhm14aa5uokej3j24d5s36ug7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.helloCaptainUser",
+                "app_store_id": "6746385821"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1054776721386:android:fab76b853e080e97a77c93",
+        "android_client_info": {
+          "package_name": "com.hellocaptain.shop"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1054776721386-142n1d645qvt68ik06vs7os3pdpvab1v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hellocaptain.shop",
+            "certificate_hash": "3544d485d5eb9704f8599da26226a51455dbe6c6"
+          }
+        },
+        {
+          "client_id": "1054776721386-r0r9qv6s4c4momdecfoofmif6qgbmuuh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hellocaptain.shop",
+            "certificate_hash": "1ce40fd6ca4121121da1a11b2231c6e64c0dedb5"
+          }
+        },
+        {
+          "client_id": "1054776721386-u1uufko8s8dg51ioup6l4q2p9djthas2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hellocaptain.shop",
+            "certificate_hash": "b1203e3732300ef4592fa51a2bcade861f1a0382"
+          }
+        },
+        {
+          "client_id": "1054776721386-2vpq1jchdv19n11effomcv60eicrstnn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEcpX9t5Ton_a6ZL6_fxea-ArGd6xiNaw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1054776721386-2vpq1jchdv19n11effomcv60eicrstnn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1054776721386-2eq6rp0vhm14aa5uokej3j24d5s36ug7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.helloCaptainUser",
+                "app_store_id": "6746385821"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1054776721386:android:999f5ea45757bdc6a77c93",
+        "android_client_info": {
+          "package_name": "com.hellocaptain.user"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1054776721386-0fm1dp1fqned9f8kdombo3rqntrr91v4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hellocaptain.user",
+            "certificate_hash": "781243977137f9df963686b5e7a370072696b3a5"
+          }
+        },
+        {
+          "client_id": "1054776721386-2vpq1jchdv19n11effomcv60eicrstnn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEcpX9t5Ton_a6ZL6_fxea-ArGd6xiNaw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1054776721386-2vpq1jchdv19n11effomcv60eicrstnn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1054776721386-2eq6rp0vhm14aa5uokej3j24d5s36ug7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.helloCaptainUser",
+                "app_store_id": "6746385821"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
