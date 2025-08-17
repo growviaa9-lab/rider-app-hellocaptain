@@ -77,14 +77,19 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.hellocaptainrider"
+    namespace "com.hellocaptain.ridernew"
     defaultConfig {
-        applicationId "com.hellocaptainrider"
+        applicationId "com.hellocaptain.ridernew"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode 12
         versionName "1.0"
     }
+    
+    buildFeatures {
+        buildConfig true
+    }
+    
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -117,3 +122,5 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+apply plugin: 'com.google.gms.google-services'

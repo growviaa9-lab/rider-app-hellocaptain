@@ -1,16 +1,14 @@
-/**
- * Hello Captain Rider App
- * Main entry point
- *
- * @format
- */
-
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { PaperProvider, BottomNavigation } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
+
+// --- 1. Import Navigation Components ---
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 
 // Import screens from their own files
 import SplashScreen from './src/screens/SplashScreen';
@@ -24,8 +22,31 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import RegisterOTPScreen from './src/screens/RegisterOTPScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import RidesScreen from './src/screens/RidesScreen';
-import ChatScreen from './src/screens/ChatScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+// --- 2. Import InboxScreen and ChatScreen ---
+import InboxScreen from './src/screens/InboxScreen'; // This will be the list of chats
+import ChatScreen from './src/screens/ChatScreen';   // This is the individual chat view
+
+// --- 3. Define the Chat Navigation Stack ---
+// This creates a separate navigation flow for your chat feature
+const ChatStack = createStackNavigator();
+
+const ChatNavigator = () => {
+  return (
+    <ChatStack.Navigator>
+      <ChatStack.Screen 
+        name="Inbox" 
+        component={InboxScreen} 
+        options={{ headerShown: false }} 
+      />
+      <ChatStack.Screen 
+        name="Chat" 
+        component={ChatScreen} 
+        options={{ headerShown: false }} // You can customize this header if needed
+      />
+    </ChatStack.Navigator>
+  );
+};
 
 
 // --- Main App with Bottom Navigation ---
@@ -45,8 +66,10 @@ const MainAppScreen = () => {
         return <HomeScreen onProfilePress={() => setProfileVisible(true)} />;
       case 'rides':
         return <RidesScreen />;
+      // --- 4. Update the 'chat' case ---
+      // Instead of showing ChatScreen directly, show the entire ChatNavigator
       case 'chat':
-        return <ChatScreen />;
+        return <ChatNavigator />;
       default:
         return null;
     }
@@ -66,8 +89,8 @@ const MainAppScreen = () => {
 
 
 const AppNavigator: React.FC = () => {
-  const [currentScreen, setCurrentScreen] = useState<string>(''); // Default screen is determined by checks
-  const [isLoading, setIsLoading] = useState(true); // This state now controls the splash screen
+  const [currentScreen, setCurrentScreen] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
   const [userPhoneNumber, setUserPhoneNumber] = useState<string>('');
 
   useEffect(() => {
@@ -94,7 +117,7 @@ const AppNavigator: React.FC = () => {
       }
     } catch (error) {
       console.error('Error checking initial route:', error);
-      setCurrentScreen('Login'); // Fallback to login on error
+      setCurrentScreen('Login');
     }
   };
   
@@ -135,7 +158,7 @@ const AppNavigator: React.FC = () => {
   const handleLoginSuccess = async () => {
     try {
       await AsyncStorage.setItem('isLoggedIn', 'true');
-      setCurrentScreen('Main'); // Redirect to Main App after login
+      setCurrentScreen('Main');
     } catch (error) {
       console.error('Error saving login state:', error);
     }
@@ -205,7 +228,10 @@ const AppContent: React.FC = () => {
   const { theme } = useTheme();
   return (
     <PaperProvider theme={theme}>
-      <AppNavigator />
+      {/* --- 5. Wrap the entire app in a NavigationContainer --- */}
+      <NavigationContainer>
+        <AppNavigator />
+      </NavigationContainer>
     </PaperProvider>
   );
 };

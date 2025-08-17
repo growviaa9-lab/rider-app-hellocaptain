@@ -1,4 +1,4 @@
-package com.hellocaptainrider
+package com.hellocaptain.ridernew
 
 import android.app.Application
 import com.facebook.react.PackageList
