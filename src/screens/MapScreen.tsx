@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Appbar, Avatar } from 'react-native-paper';
-import { useTheme } from '../context/ThemeContext';
+import { SafeAreaView, StyleSheet } from 'react-native';
 import MapComponent from '../components/Map';
 
 interface Location {
@@ -29,12 +27,7 @@ interface RideRequest {
   timer: number;
 }
 
-interface HomeScreenProps {
-  onProfilePress: () => void;
-}
-
-const HomeScreen: React.FC<HomeScreenProps> = ({ onProfilePress }) => {
-  const { theme } = useTheme();
+const MapScreen: React.FC = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [currentEarnings] = useState('₹3,467.00');
   const [driverName] = useState('Aditya');
@@ -91,14 +84,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onProfilePress }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
-        <Appbar.Content title="Hello Captain" />
-        <TouchableOpacity onPress={onProfilePress} style={styles.profileButton}>
-          <Avatar.Icon size={36} icon="account-circle" />
-        </TouchableOpacity>
-      </Appbar.Header>
-      
+    <SafeAreaView style={styles.container}>
       <MapComponent
         onLocationUpdate={handleLocationUpdate}
         isOnline={isOnline}
@@ -108,9 +94,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onProfilePress }) => {
         rideRequest={rideRequest}
         onAcceptRide={handleAcceptRide}
         onRejectRide={handleRejectRide}
-        showHeader={false}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -119,9 +104,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  profileButton: {
-    marginRight: 16,
-  },
 });
 
-export default HomeScreen;
+export default MapScreen;
