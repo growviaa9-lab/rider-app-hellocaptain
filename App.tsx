@@ -30,7 +30,7 @@ import RidesDetail from './src/screens/RidesDetail';
 // --- 3. Define the Chat Navigation Stack ---
 // This creates a separate navigation flow for your chat feature
 const ChatStack = createStackNavigator();
-// const RidesStack = createStackNavigator();
+const RidesStack = createStackNavigator();
 const ChatNavigator = () => {
   return (
     <ChatStack.Navigator>
@@ -48,22 +48,22 @@ const ChatNavigator = () => {
   );
 };
 
-// const RidesNavigator = () => {
-//   return (
-//    <RidesStack.Navigator>
-//       <RidesStack.Screen 
-//         name="RideHistory" 
-//         component={RidesScreen} 
-//         options={{ headerShown: false }} 
-//       />
-//       <RidesStack.Screen 
-//         name="RidesDetail" 
-//         component={RidesDetail} 
-//         options={{ headerShown: false }} 
-//       />
-//     </RidesStack.Navigator>
-//   );
-// };
+const RidesNavigator = () => {
+  return (
+   <RidesStack.Navigator>
+      <RidesStack.Screen 
+        name="RideHistory" 
+        component={RidesScreen} 
+        options={{ headerShown: false }} 
+      />
+      <RidesStack.Screen 
+        name="RidesDetail" 
+        component={RidesDetail} 
+        options={{ headerShown: false }} 
+      />
+    </RidesStack.Navigator>
+  );
+};
 
 
 // --- Main App with Bottom Navigation ---
@@ -82,7 +82,7 @@ const MainAppScreen = () => {
       case 'home':
         return <HomeScreen onProfilePress={() => setProfileVisible(true)} />;
       case 'rides':
-        return <RidesScreen/>;
+        return <RidesNavigator />;
       case 'chat':
         return <ChatNavigator />;
       default:
