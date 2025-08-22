@@ -10,13 +10,18 @@ import {
 } from 'react-native';
 import { Text, TextInput } from 'react-native-paper';
 import { useTheme } from '../context/ThemeContext';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 
-interface RegisterScreenProps {
-  onRegisterSuccess: (phoneNumber: string) => void;
-  onNavigateToLogin: () => void;
-}
 
-const RegisterScreen: React.FC<RegisterScreenProps> = ({ onRegisterSuccess, onNavigateToLogin }) => {
+type RootStackParamList = {
+  Register: undefined; // This screen does not expect any parameters
+  RegisterOTP: { phoneNumber: string }; // This screen expects a phoneNumber string
+
+};
+type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
+
+const RegisterScreen: React.FC = ({}) => {
   const { theme } = useTheme();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [name, setName] = useState('');
@@ -26,7 +31,16 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ onRegisterSuccess, onNa
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  // const navigation = useNavigation();
 
+   const navigation = useNavigation<RegisterScreenNavigationProp>();
+  const onNavigateToLogin = () => {
+    navigation.navigate('Login' as never);
+  };
+
+  const onRegisterSuccess = (phone: string) => {
+    navigation.navigate('RegisterOTP', { phoneNumber: phone });
+  };
   const handleRegister = async () => {
     if (!phoneNumber.trim()) {
       Alert.alert('Error', 'Please enter your phone number');
@@ -236,10 +250,18 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'absolute',
+    left: 20,
+    top: 40,
+    zIndex: 1,
+    backgroundColor: '#FF6B35',
+    borderRadius: 20,
+    color: '#fff',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
   },
   backButtonText: {
     fontSize: 24,
-    color: '#333',
+    color: '#fff',
     fontWeight: '600',
   },
   headerTitle: {

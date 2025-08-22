@@ -9,14 +9,19 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Text } from 'react-native-paper';
-
+import { useNavigation } from '@react-navigation/native';
 const { width, height } = Dimensions.get('window');
 
-interface OnboardingScreen1Props {
-  onContinue: () => void;
-}
+// interface OnboardingScreen1Props {
+//   onContinue: () => void;
+// }
 
-const OnboardingScreen1: React.FC<OnboardingScreen1Props> = ({ onContinue }) => {
+const OnboardingScreen1: React.FC = ({  }) => {
+  const navigation = useNavigation();
+  const onContinue = () => {
+    // Navigate to the next onboarding screen
+    navigation.navigate('Onboarding2' as never);
+  };
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="transparent" barStyle="dark-content" translucent />

@@ -12,21 +12,28 @@ import {
 } from 'react-native';
 import { Text, TextInput } from 'react-native-paper';
 import { useTheme } from '../context/ThemeContext';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 const { width, height } = Dimensions.get('window');
 
-interface LoginScreenProps {
-  onLoginSuccess: () => void;
-  onNavigateToRegister: () => void;
-}
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onNavigateToRegister }) => {
+
+const LoginScreen: React.FC = ({ }) => {
   const { theme } = useTheme();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const navigation = useNavigation();
+  const onLoginSuccess = async() =>{
+    await AsyncStorage.setItem('isLoggedIn', 'true');
+    navigation.replace('MainApp'); // Navigate to the main app (Tab Navigator)
+  }
+
+  const onNavigateToRegister = () => {
+    navigation.navigate('Register' as never);
+  };
 
   const handleLogin = async () => {
     if (!phoneNumber.trim()) {

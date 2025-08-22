@@ -37,11 +37,13 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ visible, onClose }) => {
     console.log('Logging out...');
     // 2. Remove the login flag from storage
     await AsyncStorage.removeItem('isLoggedIn');
-
+    await AsyncStorage.removeItem('language');
+    await AsyncStorage.removeItem('locationPermission');
+    await AsyncStorage.removeItem('onboardingCompleted');
     // 3. Reset the navigation stack to the Login screen
     navigation.reset({
       index: 0,
-      routes: [{ name: 'Login' }], // Navigate to Login, not LanguageSelection
+      routes: [{ name: 'LanguageSelection' }], // Navigate to Login, not LanguageSelection
     });
   };
 
