@@ -11,16 +11,17 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useTheme } from '../context/ThemeContext';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 interface RegisterOTPScreenProps {
-  onOTPVerified: () => void;
-  onNavigateBack: () => void;
+  // onOTPVerified: () => void;
+  // onNavigateBack: () => void;
   phoneNumber: string;
 }
 
 const RegisterOTPScreen: React.FC<RegisterOTPScreenProps> = ({ 
-  onOTPVerified, 
-  onNavigateBack, 
+  // onOTPVerified, 
+  // onNavigateBack, 
   phoneNumber 
 }) => {
   const { theme } = useTheme();
@@ -28,6 +29,21 @@ const RegisterOTPScreen: React.FC<RegisterOTPScreenProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const otpRefs = useRef<Array<TextInput | null>>([]);
 
+  const navigation = useNavigation();
+  const onOTPVerified = async() => {
+    try {
+      await AsyncStorage.setItem('isLoggedIn', 'true');
+      navigation.replace('MainApp' as never);
+    } catch (error) {
+      console.error('Error saving login state:', error);
+    }
+  };
+
+  const onNavigateBack = () => {
+    navigation.goBack();
+  };
+
+  
   const handleOTPChange = (value: string, index: number) => {
     const newOtpValues = [...otpValues];
     newOtpValues[index] = value;

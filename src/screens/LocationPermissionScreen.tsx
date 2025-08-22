@@ -11,18 +11,28 @@ import { Text, Button, Card } from 'react-native-paper';
 import Geolocation from '@react-native-community/geolocation';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 
-interface LocationPermissionScreenProps {
-  onPermissionGranted: () => void;
-}
 
-const LocationPermissionScreen: React.FC<LocationPermissionScreenProps> = ({
-  onPermissionGranted,
+// interface LocationPermissionScreenProps {
+//   onPermissionGranted: () => void;
+// }
+
+const LocationPermissionScreen: React.FC = ({
 }) => {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const [isRequesting, setIsRequesting] = useState(false);
+  const navigation = useNavigation();
 
+
+  const onPermissionGranted = async () => {
+    // Save the permission status to AsyncStorage
+    await AsyncStorage.setItem('locationPermission', 'granted');
+    // Navigate to the next screen
+    navigation.navigate('Onboarding1' as never);
+  };
   const handlePermissionRequest = async () => {
     setIsRequesting(true);
     

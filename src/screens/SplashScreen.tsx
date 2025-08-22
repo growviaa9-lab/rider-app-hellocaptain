@@ -8,7 +8,7 @@ import { Text } from 'react-native-paper';
 import { useTheme } from '../context/ThemeContext';
 
 interface SplashScreenProps {
-  onFinish: () => void;
+  onFinish?: () => void;
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
@@ -16,11 +16,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      onFinish();
+      // onFinish();
     }, 3000); // Show splash for 3 seconds
 
     return () => clearTimeout(timer);
-  }, [onFinish]);
+  }, [onFinish]); 
 
   return (
     <View style={styles.container}>

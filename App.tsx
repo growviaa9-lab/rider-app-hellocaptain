@@ -1,16 +1,16 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
-import { StyleSheet } from 'react-native';
-import { PaperProvider, BottomNavigation } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { PaperProvider } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
 
-// --- 1. Import Navigation Components ---
+// --- CHANGE: Import navigation components, including createBottomTabNavigator ---
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-// Import screens from their own files
+// Import all your screens
 import SplashScreen from './src/screens/SplashScreen';
 import LocationPermissionScreen from './src/screens/LocationPermissionScreen';
 import LanguageSelectionScreen from './src/screens/LanguageSelectionScreen';
@@ -23,227 +23,128 @@ import RegisterOTPScreen from './src/screens/RegisterOTPScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import RidesScreen from './src/screens/RidesScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
-// --- 2. Import InboxScreen and ChatScreen ---
-import InboxScreen from './src/screens/InboxScreen'; // This will be the list of chats
-import ChatScreen from './src/screens/ChatScreen';   // This is the individual chat view
+import InboxScreen from './src/screens/InboxScreen';
+import ChatScreen from './src/screens/ChatScreen';
 import RidesDetail from './src/screens/RidesDetail';
-// --- 3. Define the Chat Navigation Stack ---
-// This creates a separate navigation flow for your chat feature
+
+// --- These Stack Navigators for Chat and Rides remain the same ---
 const ChatStack = createStackNavigator();
-// const RidesStack = createStackNavigator();
-const ChatNavigator = () => {
-  return (
-    <ChatStack.Navigator>
-      <ChatStack.Screen 
-        name="Inbox" 
-        component={InboxScreen} 
-        options={{ headerShown: false }} 
-      />
-      <ChatStack.Screen 
-        name="Chat" 
-        component={ChatScreen} 
-        options={{ headerShown: false }} // You can customize this header if needed
-      />
-    </ChatStack.Navigator>
-  );
-};
+const RidesStack = createStackNavigator();
 
-// const RidesNavigator = () => {
-//   return (
-//    <RidesStack.Navigator>
-//       <RidesStack.Screen 
-//         name="RideHistory" 
-//         component={RidesScreen} 
-//         options={{ headerShown: false }} 
-//       />
-//       <RidesStack.Screen 
-//         name="RidesDetail" 
-//         component={RidesDetail} 
-//         options={{ headerShown: false }} 
-//       />
-//     </RidesStack.Navigator>
-//   );
-// };
+const ChatNavigator = () => (
+  <ChatStack.Navigator screenOptions={{ headerShown: false }}>
+    <ChatStack.Screen name="Inbox" component={InboxScreen} />
+    <ChatStack.Screen name="Chat" component={ChatScreen} />
+  </ChatStack.Navigator>
+);
 
+const RidesNavigator = () => (
+  <RidesStack.Navigator screenOptions={{ headerShown: false }}>
+    <RidesStack.Screen name="RideHistory" component={RidesScreen} />
+    <RidesStack.Screen name="RidesDetail" component={RidesDetail} />
+  </RidesStack.Navigator>
+);
 
-// --- Main App with Bottom Navigation ---
-const MainAppScreen = () => {
-  const [index, setIndex] = useState(0);
+// --- CHANGE: Create a Bottom Tab Navigator for the main app ---
+const Tab = createBottomTabNavigator();
+const MainAppTabs = () => {
   const [profileVisible, setProfileVisible] = useState(false);
-  
-  const [routes] = useState([
-    { key: 'home', title: 'Home', focusedIcon: 'home', unfocusedIcon: 'home-outline'},
-    { key: 'rides', title: 'Rides', focusedIcon: 'car', unfocusedIcon: 'car-outline' },
-    { key: 'chat', title: 'Chat', focusedIcon: 'message', unfocusedIcon: 'message-outline' },
-  ]);
 
-  const renderScene = ({ route }: { route: { key: string } }) => {
-    switch (route.key) {
-      case 'home':
-        return <HomeScreen onProfilePress={() => setProfileVisible(true)} />;
-      case 'rides':
-        return <RidesScreen/>;
-      case 'chat':
-        return <ChatNavigator />;
-      default:
-        return null;
-    }
-  };
+  const CustomHomeScreen = (props) => (
+    <HomeScreen {...props} onProfilePress={() => setProfileVisible(true)} />
+  );
 
   return (
     <>
-      <BottomNavigation
-        navigationState={{ index, routes }}
-        onIndexChange={setIndex}
-        renderScene={renderScene}
-      />
+      <Tab.Navigator screenOptions={{ headerShown: false }}>
+        <Tab.Screen
+          name="Home"
+          component={CustomHomeScreen}
+          options={{
+            tabBarIcon: ({ color, size }) => <Icon name="home" color={color} size={size} />,
+          }}
+        />
+        <Tab.Screen
+          name="Rides"
+          component={RidesNavigator}
+          options={{
+            tabBarIcon: ({ color, size }) => <Icon name="car" color={color} size={size} />,
+          }}
+        />
+        <Tab.Screen
+          name="ChatTab"
+          component={ChatNavigator}
+          options={{
+            title: 'Chat',
+            tabBarIcon: ({ color, size }) => <Icon name="message" color={color} size={size} />,
+          }}
+        />
+      </Tab.Navigator>
       <ProfileScreen visible={profileVisible} onClose={() => setProfileVisible(false)} />
     </>
   );
 };
 
-
-const AppNavigator: React.FC = () => {
-  const [currentScreen, setCurrentScreen] = useState<string>('');
+// --- CHANGE: Create a single Root Stack to manage the entire app flow ---
+const RootStack = createStackNavigator();
+const AppNavigator = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [userPhoneNumber, setUserPhoneNumber] = useState<string>('');
+  const [initialRouteName, setInitialRouteName] = useState<string | null>(null);
 
   useEffect(() => {
+    const checkInitialRoute = async () => {
+      try {
+        const hasSelectedLanguage = await AsyncStorage.getItem('language');
+        const hasLocationPermission = await AsyncStorage.getItem('locationPermission');
+        const hasCompletedOnboarding = await AsyncStorage.getItem('onboardingCompleted');
+        const isLoggedIn = await AsyncStorage.getItem('isLoggedIn');
+
+        if (!hasSelectedLanguage) {
+          setInitialRouteName('LanguageSelection');
+        } else if (!hasLocationPermission) {
+          setInitialRouteName('LocationPermission');
+        } else if (!hasCompletedOnboarding) {
+          setInitialRouteName('Onboarding1');
+        } else if (!isLoggedIn) {
+          setInitialRouteName('Login');
+        } else {
+          setInitialRouteName('MainApp'); // This is our new Tab Navigator
+        }
+      } catch (error) {
+        console.error('Error checking initial route:', error);
+        setInitialRouteName('Login');
+      } finally {
+        setIsLoading(false);
+      }
+    };
     checkInitialRoute();
   }, []);
 
-  const checkInitialRoute = async () => {
-    try {
-      const hasSelectedLanguage = await AsyncStorage.getItem('language');
-      const hasLocationPermission = await AsyncStorage.getItem('locationPermission');
-      const hasCompletedOnboarding = await AsyncStorage.getItem('onboardingCompleted');
-      const isLoggedIn = await AsyncStorage.getItem('isLoggedIn');
-      
-      if (!hasSelectedLanguage) {
-        setCurrentScreen('LanguageSelection');
-      } else if (!hasLocationPermission) {
-        setCurrentScreen('LocationPermission');
-      } else if (!hasCompletedOnboarding) {
-        setCurrentScreen('Onboarding1');
-      } else if (!isLoggedIn) {
-        setCurrentScreen('Login');
-      } else {
-        setCurrentScreen('Main');
-      }
-    } catch (error) {
-      console.error('Error checking initial route:', error);
-      setCurrentScreen('Login');
-    }
-  };
-  
-  const handleSplashFinish = () => {
-    setIsLoading(false);
-  };
-
-  const handleLanguageSelected = () => {
-    setCurrentScreen('LocationPermission');
-  };
-
-  const handlePermissionGranted = async () => {
-    try {
-      await AsyncStorage.setItem('locationPermission', 'granted');
-      setCurrentScreen('Onboarding1');
-    } catch (error) {
-      console.error('Error saving location permission:', error);
-    }
-  };
-
-  const handleOnboarding1Continue = () => {
-    setCurrentScreen('Onboarding2');
-  };
-
-  const handleOnboarding2Continue = () => {
-    setCurrentScreen('Onboarding3');
-  };
-
-  const handleOnboarding3Continue = async () => {
-    try {
-      await AsyncStorage.setItem('onboardingCompleted', 'true');
-      setCurrentScreen('Login');
-    } catch (error) {
-      console.error('Error saving onboarding completion:', error);
-    }
-  };
-
-  const handleLoginSuccess = async () => {
-    try {
-      await AsyncStorage.setItem('isLoggedIn', 'true');
-      setCurrentScreen('Main');
-    } catch (error) {
-      console.error('Error saving login state:', error);
-    }
-  };
-
-  const handleNavigateToRegister = () => {
-    setCurrentScreen('Register');
-  };
-
-  const handleNavigateToLogin = () => {
-    setCurrentScreen('Login');
-  };
-
-  const handleRegisterSuccess = async (phoneNumber: string) => {
-    setUserPhoneNumber(phoneNumber);
-    setCurrentScreen('RegisterOTP');
-  };
-
-  const handleOTPVerified = async () => {
-    try {
-      await AsyncStorage.setItem('isLoggedIn', 'true');
-      setCurrentScreen('Main');
-    } catch (error) {
-      console.error('Error saving login state:', error);
-    }
-  };
-
-  const handleNavigateBackFromOTP = () => {
-    setCurrentScreen('Register');
-  };
-
-  if (isLoading) {
-    return <SplashScreen onFinish={handleSplashFinish} />;
+  if (isLoading || !initialRouteName) {
+    return <SplashScreen onFinish={()=>{setIsLoading(false);}}/>;
   }
 
-  switch (currentScreen) {
-    case 'LanguageSelection':
-      return <LanguageSelectionScreen onLanguageSelected={handleLanguageSelected} />;
-    case 'LocationPermission':
-      return <LocationPermissionScreen onPermissionGranted={handlePermissionGranted} />;
-    case 'Onboarding1':
-      return <OnboardingScreen1 onContinue={handleOnboarding1Continue} />;
-    case 'Onboarding2':
-      return <OnboardingScreen2 onContinue={handleOnboarding2Continue} />;
-    case 'Onboarding3':
-      return <OnboardingScreen3 onContinue={handleOnboarding3Continue} />;
-    case 'Login':
-      return <LoginScreen onLoginSuccess={handleLoginSuccess} onNavigateToRegister={handleNavigateToRegister} />;
-    case 'Register':
-      return <RegisterScreen onRegisterSuccess={handleRegisterSuccess} onNavigateToLogin={handleNavigateToLogin} />;
-    case 'RegisterOTP':
-      return (
-        <RegisterOTPScreen 
-          onOTPVerified={handleOTPVerified} 
-          onNavigateBack={handleNavigateBackFromOTP}
-          phoneNumber={userPhoneNumber}
-        />
-      );
-    case 'Main':
-        return <MainAppScreen />;
-    default:
-        return null; 
-  }
+  return (
+    <RootStack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
+      {/* Auth and Onboarding Screens */}
+      <RootStack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
+      <RootStack.Screen name="LocationPermission" component={LocationPermissionScreen} />
+      <RootStack.Screen name="Onboarding1" component={OnboardingScreen1} />
+      <RootStack.Screen name="Onboarding2" component={OnboardingScreen2} />
+      <RootStack.Screen name="Onboarding3" component={OnboardingScreen3} />
+      <RootStack.Screen name="Login" component={LoginScreen} />
+      <RootStack.Screen name="Register" component={RegisterScreen} />
+      <RootStack.Screen name="RegisterOTP" component={RegisterOTPScreen} />
+      <RootStack.Screen name="MainApp" component={MainAppTabs} />
+    </RootStack.Navigator>
+  );
 };
 
-const AppContent: React.FC = () => {
+// --- This part remains the same ---
+const AppContent = () => {
   const { theme } = useTheme();
   return (
     <PaperProvider theme={theme}>
-      {/* --- 5. Wrap the entire app in a NavigationContainer --- */}
       <NavigationContainer>
         <AppNavigator />
       </NavigationContainer>
@@ -251,7 +152,7 @@ const AppContent: React.FC = () => {
   );
 };
 
-const App: React.FC = () => {
+const App = () => {
   return (
     <ThemeProvider>
       <LanguageProvider>
