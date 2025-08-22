@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
   StatusBar,
   ImageBackground,
+  Alert,
+  Platform,
 } from 'react-native';
 import { Text, Button, Card } from 'react-native-paper';
+import Geolocation from '@react-native-community/geolocation';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -18,11 +21,78 @@ const LocationPermissionScreen: React.FC<LocationPermissionScreenProps> = ({
 }) => {
   const { theme } = useTheme();
   const { t } = useLanguage();
+  const [isRequesting, setIsRequesting] = useState(false);
 
-  const handlePermissionRequest = () => {
-    // In a real app, you would request location permission here
-    // For now, we'll just simulate permission granted
-    onPermissionGranted();
+  const handlePermissionRequest = async () => {
+    setIsRequesting(true);
+    
+    try {
+      // Request location authorization
+      const authStatus = await new Promise<string>((resolve) => {
+        Geolocation.requestAuthorization(
+          () => resolve('granted'),
+          () => resolve('denied')
+        );
+      });
+
+      console.log('Location authorization status:', authStatus);
+
+      if (authStatus === 'granted') {
+        // Permission granted, test location access
+        Geolocation.getCurrentPosition(
+          (position) => {
+            console.log('Location retrieved:', position);
+            setIsRequesting(false);
+            onPermissionGranted();
+          },
+          (error) => {
+            console.log('Location error:', error);
+            setIsRequesting(false);
+            Alert.alert(
+              'Location Error',
+              'Unable to retrieve your location. Please check your location settings.',
+              [{ text: 'OK' }]
+            );
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 15000,
+            maximumAge: 10000,
+          }
+        );
+      } else {
+        setIsRequesting(false);
+        // Permission denied
+        Alert.alert(
+          'Location Permission Required',
+          'This app needs location access to show nearby rides and provide navigation. Please enable location access in your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Settings', 
+              onPress: () => {
+                // On iOS, this will open app settings
+                if (Platform.OS === 'ios') {
+                  // Note: Opening settings requires additional setup
+                  Alert.alert('Please go to Settings > Privacy & Security > Location Services to enable location access');
+                } else {
+                  // On Android, you could use Linking to open app settings
+                  Alert.alert('Please enable location access in app settings');
+                }
+              }
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      setIsRequesting(false);
+      console.log('Permission request error:', error);
+      Alert.alert(
+        'Error',
+        'An error occurred while requesting location permission. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (
@@ -73,11 +143,13 @@ const LocationPermissionScreen: React.FC<LocationPermissionScreenProps> = ({
           <Button
             mode="contained"
             onPress={handlePermissionRequest}
+            disabled={isRequesting}
+            loading={isRequesting}
             style={[styles.permissionButton, { backgroundColor: theme.colors.primary }]}
             contentStyle={styles.buttonContent}
             labelStyle={styles.buttonLabel}
           >
-            {t('givePermission')}
+            {isRequesting ? t('requesting') || 'Requesting...' : t('givePermission')}
           </Button>
         </View>
       </ImageBackground>
