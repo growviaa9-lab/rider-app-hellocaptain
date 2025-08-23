@@ -118,7 +118,7 @@ const RidesDetail: React.FC<StackScreenProps<RootStackParamList, 'RidesDetail'>>
           style={styles.absFullscreenButton}
           onPress={() => setMapFullScreen(true)}
         >
-          <Text style={styles.absFullscreenButtonText}>Fullscreen</Text>
+          <Text >Fullscreen</Text>
           {/* <Icon source="fullscreen" size={24} color="#333" /> */}
         </TouchableOpacity>
       )}
