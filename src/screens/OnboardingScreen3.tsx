@@ -9,22 +9,14 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Text } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
-// interface OnboardingScreen3Props {
-//   onContinue: () => void;
-// }
+interface OnboardingScreen3Props {
+  onContinue: () => void;
+}
 
-const OnboardingScreen3: React.FC = ({ }) => {
-  const navigation = useNavigation();
-  const onContinue = () => {
-    // Navigate to the next onboarding screen
-    AsyncStorage.setItem('onboardingCompleted', 'true');
-    navigation.navigate('Login' as never);
-  };
+const OnboardingScreen3: React.FC<OnboardingScreen3Props> = ({ onContinue }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="transparent" barStyle="dark-content" translucent />

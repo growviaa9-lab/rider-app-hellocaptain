@@ -89,12 +89,22 @@ class ApiService {
     }
   }
 
-  async updateProfile(profileData: any) {
+  async editProfile(profileData: any) {
     try {
-      const response = await this.api.put('/driver/profile', profileData);
+      const response = await this.api.put('/driver/edit_profile', profileData);
       return response.data;
     } catch (error) {
       console.error('Update profile error:', error);
+      throw error;
+    }
+  }
+
+  async changePassword(passwordData: { phone_number: string; password: string; new_password: string }) {
+    try {
+      const response = await this.api.post('/driver/changepass', passwordData);
+      return response.data;
+    } catch (error) {
+      console.error('Change password error:', error);
       throw error;
     }
   }
@@ -169,6 +179,25 @@ class ApiService {
       return response.data;
     } catch (error) {
       console.error('Update duty status error:', error);
+      throw error;
+    }
+  }
+
+  // Vehicle APIs
+  async editVehicle(vehicleData: {
+    id: string;
+    phone_number: string;
+    id_kendaraan: number;
+    brand: string;
+    type: string;
+    no_kendaraan: string;
+    color: string;
+  }) {
+    try {
+      const response = await this.api.post('/driver/edit_kendaraan', vehicleData);
+      return response;
+    } catch (error) {
+      console.error('Edit vehicle error:', error);
       throw error;
     }
   }

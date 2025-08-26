@@ -4,39 +4,31 @@ import { Appbar, Text, useTheme, Card, Divider } from 'react-native-paper';
 import { StackScreenProps } from '@react-navigation/stack';
 import base64 from 'base-64';
 
-// --- Type Definitions ---
+// --- Helper Functions & Type Definitions ---
 
-// --- FIX: Expanded the Ride interface to include all necessary data ---
-// This now includes coordinates and other details for the detail screen.
+// --- FIX 1: Updated the interface to use 'price' instead of 'cost' ---
 interface Ride {
   id: string;
   pickup_address: string;
   destination_address: string;
   order_time: string;
-  price: string;
+  price: string; // The API sends price as a string, e.g., "52"
   status: string;
   service: string;
-  start_latitude: string;
-  start_longitude: string;
-  end_latitude: string;
-  end_longitude: string;
-  // You can add any other fields from the API you might need
 }
-
-// The params for ALL screens in your stack
-type RootStackParamList = {
-  RideHistory: undefined;
-  RidesDetail: { ride: Ride }; // RidesDetail expects the full Ride object
-};
 
 // Props for the RideItem component
 interface RideItemProps {
   ride: Ride;
-  onPress: () => void;
 }
 
-// --- Helper Function ---
+// Type definition for your navigation stack
+type RootStackParamList = {
+  RideHistory: undefined; 
+  // ... your other screens
+};
 
+// Function to convert status code to a readable string
 const getStatusText = (status: string) => {
   switch (status) {
     case '2': return 'Accepted';
@@ -49,7 +41,7 @@ const getStatusText = (status: string) => {
 
 // --- UI Components ---
 
-const RideItem: React.FC<RideItemProps> = ({ ride, onPress }) => {
+const RideItem: React.FC<RideItemProps> = ({ ride }) => {
   const { colors } = useTheme();
   
   const rideDate = new Date(ride.order_time).toLocaleDateString('en-US', {
@@ -57,10 +49,11 @@ const RideItem: React.FC<RideItemProps> = ({ ride, onPress }) => {
   });
 
   return (
-    <Card style={styles.card} onPress={onPress}>
+    <Card style={styles.card}>
       <Card.Title
         title={ride.service}
         subtitle={rideDate}
+        // --- FIX 2: Display Rupee symbol (₹) and use the correct 'price' property ---
         right={(props) => <Text {...props} style={styles.price}>{`₹${ride.price}`}</Text>}
       />
       <Card.Content>
@@ -74,9 +67,9 @@ const RideItem: React.FC<RideItemProps> = ({ ride, onPress }) => {
         </View>
       </Card.Content>
       <Card.Actions>
-        <Text style={[styles.status, { color: getStatusText(ride.status) === 'Finished' ? 'green' : 'red' }]}>
-          {getStatusText(ride.status)}
-        </Text>
+         <Text style={[styles.status, { color: getStatusText(ride.status) === 'Finished' ? colors.secondary : colors.error }]}>
+           {getStatusText(ride.status)}
+         </Text>
       </Card.Actions>
     </Card>
   );
@@ -85,11 +78,10 @@ const RideItem: React.FC<RideItemProps> = ({ ride, onPress }) => {
 
 // --- Main Screen Component ---
 
-const RidesScreen: React.FC<StackScreenProps<RootStackParamList, 'RideHistory'>> = ({ navigation }) => {
+const RideHistoryScreen: React.FC<StackScreenProps<RootStackParamList, 'RideHistory'>> = ({ navigation }) => {
   const theme = useTheme();
   const driverId = 'D1754461954'; 
 
-  
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,9 +98,12 @@ const RidesScreen: React.FC<StackScreenProps<RootStackParamList, 'RideHistory'>>
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + base64.encode('user:pass'), // Replace with actual credentials
+            // IMPORTANT: Replace 'user:pass' with your actual API username and password
+            'Authorization': 'Basic ' + base64.encode('user:pass'),
           },
-          body: JSON.stringify({ id: driverId }),
+          body: JSON.stringify({
+            id: driverId,
+          }),
         });
 
         if (!response.ok) {
@@ -150,13 +145,7 @@ const RidesScreen: React.FC<StackScreenProps<RootStackParamList, 'RideHistory'>>
       <FlatList
         data={rides}
         keyExtractor={(item, index) => `${item.id}-${index}`}
-        renderItem={({ item }) => (
-          <RideItem
-            ride={item}
-            // This function calls navigate and passes the entire ride object.
-            onPress={() => navigation.navigate('RidesDetail', { ride: item })}
-          />
-        )}
+        renderItem={({ item }) => <RideItem ride={item} />}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={<View style={styles.center}><Text>No rides found.</Text></View>}
         ItemSeparatorComponent={() => <Divider />}
@@ -179,4 +168,4 @@ const styles = StyleSheet.create({
   errorText: { textAlign: 'center' },
 });
 
-export default RidesScreen;
+export default RideHistoryScreen;

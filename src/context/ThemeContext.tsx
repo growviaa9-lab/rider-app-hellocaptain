@@ -22,7 +22,6 @@ const lightTheme = {
     secondaryContainer: '#E8F5E8',
     surface: '#FFFFFF',
     surfaceVariant: '#F5F5F5',
-    mapstroke: '#0e48acff', // Orange color for map stroke
     background: '#FAFAFA',
     onPrimary: '#FFFFFF',
     onPrimaryContainer: '#2D1B00',
@@ -54,7 +53,6 @@ const darkTheme = {
     surface: '#1E1E1E',
     surfaceVariant: '#2A2A2A',
     background: '#121212',
-    mapstroke: '#00276bff', // Orange color for map stroke
     onPrimary: '#FFFFFF',
     onPrimaryContainer: '#FFE6DC',
     onSecondary: '#FFFFFF', 
