@@ -101,12 +101,12 @@ const MapComponent: React.FC<MapComponentProps> = ({
           handleSuccess,
           (lowAccuracyError) => {
             console.error('Low-accuracy location error:', lowAccuracyError);
-            Alert.alert('Location Error', 'Unable to get current location even with low accuracy. Please check your signal and device settings.');
+            // Alert.alert('Location Error', 'Unable to get current location even with low accuracy. Please check your signal and device settings.');
           },
           { enableHighAccuracy: false, timeout: 20000, maximumAge: 100000 }
         );
       } else {
-        Alert.alert('Location Error', `Unable to get current location. (Code: ${error.code})`);
+        // Alert.alert('Location Error', `Unable to get current location. (Code: ${error.code})`);
       }
     };
 
