@@ -25,26 +25,25 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import RegisterOTPScreen from './src/screens/RegisterOTPScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import RidesScreen from './src/screens/RidesScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
+import ProfileScreen from './src/screens/ProfileScreen'; // This component will be modified
 import InboxScreen from './src/screens/InboxScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import RidesDetail from './src/screens/RidesDetail';
-import NewOrderScreen from './src/screens/NewOrderScreen'; // Screen to display new ride requests
+import NewOrderScreen from './src/screens/NewOrderScreen';
+// Note: DriverRatingsScreen will now be imported inside ProfileScreen, not here.
 
 // --- Background Notification Handler ---
-// This function MUST be a top-level function (outside of any class)
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('Message handled in the background!', remoteMessage);
-  // The OS will display the notification automatically. You can add custom logic here if needed.
 });
 
 // --- Navigation Reference ---
-// This allows navigation from outside of the component tree (e.g., from a notification listener)
 export const navigationRef = createNavigationContainerRef();
 
 // --- Navigator Setups ---
 const ChatStack = createStackNavigator();
 const RidesStack = createStackNavigator();
+// We no longer need a ProfileStack
 
 const ChatNavigator = () => (
   <ChatStack.Navigator screenOptions={{ headerShown: false }}>
@@ -60,10 +59,13 @@ const RidesNavigator = () => (
   </RidesStack.Navigator>
 );
 
+// The ProfileNavigator has been removed as it's not needed for the new logic.
+
 const Tab = createBottomTabNavigator();
 const MainAppTabs = () => {
   const [profileVisible, setProfileVisible] = useState(false);
 
+  // This custom component passes the function to open the profile panel
   const CustomHomeScreen = (props: any) => (
     <HomeScreen {...props} onProfilePress={() => setProfileVisible(true)} />
   );
@@ -80,6 +82,7 @@ const MainAppTabs = () => {
           options={{ title: 'Chat' }}
         />
       </Tab.Navigator>
+      {/* This renders the ProfileScreen as an overlay */}
       <ProfileScreen visible={profileVisible} onClose={() => setProfileVisible(false)} />
     </>
   );
@@ -177,17 +180,14 @@ const App = () => {
     requestUserPermission();
 
     // --- 2. Handle Foreground Notifications ---
-    // This runs when a notification is received while the app is open.
     const unsubscribeOnMessage = messaging().onMessage(async remoteMessage => {
       console.log('A new FCM message arrived in foreground!', JSON.stringify(remoteMessage));
       if (remoteMessage.data && navigationRef.isReady()) {
-        // Navigate to the NewOrder screen with the ride data
         navigationRef.navigate('NewOrder', { rideData: remoteMessage.data });
       }
     });
 
     // --- 3. Handle Tapped Notifications (from Background) ---
-    // This runs when the user taps a notification and the app was in the background.
     const unsubscribeOnOpened = messaging().onNotificationOpenedApp(remoteMessage => {
       console.log('Notification caused app to open from background state:', remoteMessage);
       if (remoteMessage.data && navigationRef.isReady()) {
@@ -196,13 +196,11 @@ const App = () => {
     });
 
     // --- 4. Handle Tapped Notifications (from Quit State) ---
-    // This checks if the app was opened from a terminated state by a notification.
     messaging()
       .getInitialNotification()
       .then(remoteMessage => {
         if (remoteMessage && remoteMessage.data) {
           console.log('Notification caused app to open from quit state:', remoteMessage);
-          // We add a small delay to ensure the navigator is ready
           setTimeout(() => {
             if (navigationRef.isReady()) {
               navigationRef.navigate('NewOrder', { rideData: remoteMessage.data });
