@@ -151,14 +151,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onProfilePress }) => {
   };
 
   // Show a loading screen while the initial profile is being fetched
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Syncing your account...</Text>
-      </View>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <View style={styles.loadingContainer}>
+  //       <ActivityIndicator size="large" color={theme.colors.primary} />
+  //       <Text style={styles.loadingText}>Syncing your account...</Text>
+  //     </View>
+  //   );
+  // }
 
   return (
     <View style={styles.container}>
