@@ -7,6 +7,8 @@ import {
   Text,
   TouchableOpacity,
   StatusBar,
+  Platform, // Import Platform
+  PermissionsAndroid, // Import PermissionsAndroid for Android
 } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Marker, Circle } from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
@@ -47,7 +49,7 @@ interface MapComponentProps {
   rideRequest?: RideRequest | null;
   onAcceptRide?: (rideId: string) => void;
   onRejectRide?: (rideId: string) => void;
-  showHeader?: boolean; // Add optional prop to control header visibility
+  showHeader?: boolean;
 }
 
 const MapComponent: React.FC<MapComponentProps> = ({
@@ -59,90 +61,131 @@ const MapComponent: React.FC<MapComponentProps> = ({
   rideRequest,
   onAcceptRide,
   onRejectRide,
-  showHeader = true, // Default to showing header for backward compatibility
+  showHeader = true,
 }) => {
   const [location, setLocation] = useState<Location>({
-    latitude: 27.7172, // Default to Kathmandu
+    latitude: 27.7172,
     longitude: 85.3240,
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
   });
-  const [_hasLocationPermission, setHasLocationPermission] = useState(false);
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [_isLookingForRide, setIsLookingForRide] = useState(false);
   const [rideTimer, setRideTimer] = useState(0);
   const mapRef = useRef<MapView>(null);
 
+  // UPDATED: This function now has a fallback for timeout errors.
   const getCurrentLocation = useCallback(() => {
-    Geolocation.getCurrentPosition(
-      (position: any) => {
-        const newLocation = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        };
-        setLocation(newLocation);
-        if (onLocationUpdate) {
-          onLocationUpdate(newLocation);
-        }
-        
-        // Animate to current location
-        if (mapRef.current) {
-          mapRef.current.animateToRegion(newLocation, 1000);
-        }
-      },
-      (error: any) => {
-        console.error('Error getting current location:', error);
-        Alert.alert('Error', 'Unable to get current location');
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-    );
+    const handleSuccess = (position: any) => {
+      const newLocation = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      };
+      setLocation(newLocation);
+      if (onLocationUpdate) {
+        onLocationUpdate(newLocation);
+      }
+      if (mapRef.current) {
+        mapRef.current.animateToRegion(newLocation, 1000);
+      }
+    };
+
+    const handleError = (error: any) => {
+      console.error('High-accuracy location error:', error);
+      // If the high-accuracy request times out, try again with lower accuracy.
+      if (error.code === 3) { // Code 3 is TIMEOUT
+        // console.log('High-accuracy timed out. Falling back to low-accuracy...');
+        Geolocation.getCurrentPosition(
+          handleSuccess,
+          (lowAccuracyError) => {
+            console.error('Low-accuracy location error:', lowAccuracyError);
+            Alert.alert('Location Error', 'Unable to get current location even with low accuracy. Please check your signal and device settings.');
+          },
+          { enableHighAccuracy: false, timeout: 20000, maximumAge: 100000 }
+        );
+      } else {
+        Alert.alert('Location Error', `Unable to get current location. (Code: ${error.code})`);
+      }
+    };
+
+    // First, try to get a high-accuracy location.
+    Geolocation.getCurrentPosition(handleSuccess, handleError, {
+      enableHighAccuracy: true,
+      timeout: 15000, // 15 seconds
+      maximumAge: 10000,
+    });
   }, [onLocationUpdate]);
 
+  // UPDATED: This function correctly handles the permission flow for both platforms.
   const requestLocationPermission = useCallback(async () => {
-    try {
-      Geolocation.requestAuthorization();
-      setHasLocationPermission(true);
-      getCurrentLocation();
-    } catch (error) {
-      console.error('Permission denied', error);
-      Alert.alert(
-        'Permission Required',
-        'Location permission is required to show your position on the map.',
-        [{ text: 'OK' }]
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Location Permission',
+            message: 'This app needs access to your location.',
+            buttonPositive: 'OK',
+          },
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          setHasLocationPermission(true);
+          getCurrentLocation();
+        } else {
+          Alert.alert('Permission Denied', 'Location permission is required.');
+        }
+      } catch (err) {
+        console.warn(err);
+      }
+    } else if (Platform.OS === 'ios') {
+      Geolocation.requestAuthorization(
+        () => {
+          setHasLocationPermission(true);
+          getCurrentLocation();
+        },
+        (error) => {
+          console.error("iOS Permission Error:", error);
+          Alert.alert('Permission Required', 'Location permission is required.');
+        }
       );
     }
   }, [getCurrentLocation]);
 
   useEffect(() => {
     requestLocationPermission();
-    
-    // Set up location watching
-    const locationWatchId = Geolocation.watchPosition(
-      (position: any) => {
-        const newLocation = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          latitudeDelta: location.latitudeDelta,
-          longitudeDelta: location.longitudeDelta,
-        };
-        setLocation(newLocation);
-        if (onLocationUpdate) {
-          onLocationUpdate(newLocation);
-        }
-      },
-      (error: any) => {
-        console.error('Error tracking location:', error);
-      },
-      { enableHighAccuracy: true, distanceFilter: 10, interval: 5000 }
-    );
+  }, [requestLocationPermission]);
+
+  useEffect(() => {
+    let locationWatchId: number | null = null;
+    if (hasLocationPermission) {
+      locationWatchId = Geolocation.watchPosition(
+        (position: any) => {
+          const newLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            latitudeDelta: location.latitudeDelta,
+            longitudeDelta: location.longitudeDelta,
+          };
+          setLocation(newLocation);
+          if (onLocationUpdate) {
+            onLocationUpdate(newLocation);
+          }
+        },
+        (error: any) => {
+          console.error('Error tracking location:', error);
+        },
+        { enableHighAccuracy: true, distanceFilter: 10, interval: 5000 }
+      );
+    }
     
     return () => {
       if (locationWatchId !== null) {
         Geolocation.clearWatch(locationWatchId);
       }
     };
-  }, [requestLocationPermission, location.latitudeDelta, location.longitudeDelta, onLocationUpdate]);
+  }, [hasLocationPermission, onLocationUpdate, location.latitudeDelta, location.longitudeDelta]);
 
   useEffect(() => {
     if (rideRequest && rideRequest.timer > 0) {
@@ -151,7 +194,6 @@ const MapComponent: React.FC<MapComponentProps> = ({
         setRideTimer((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            // Auto reject ride if timer expires
             if (onRejectRide) {
               onRejectRide(rideRequest.id);
             }
@@ -262,7 +304,6 @@ const MapComponent: React.FC<MapComponentProps> = ({
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
-      {/* Header - conditionally rendered */}
       {showHeader && (
         <View style={styles.header}>
           <TouchableOpacity style={styles.menuButton}>
@@ -279,21 +320,19 @@ const MapComponent: React.FC<MapComponentProps> = ({
         </View>
       )}
 
-      {/* Map */}
-              <MapView
-          ref={mapRef}
-          provider={PROVIDER_GOOGLE}
-          style={styles.map}
-          region={location}
-          showsUserLocation={true}
-          showsMyLocationButton={true}
-          showsCompass={true}
-          showsScale={true}
-          showsBuildings={true}
-          showsTraffic={false}
-          onMapReady={requestLocationPermission}
-        >
-        {/* Driver location marker */}
+      <MapView
+        ref={mapRef}
+        provider={PROVIDER_GOOGLE}
+        style={styles.map}
+        region={location}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
+        showsCompass={true}
+        showsScale={true}
+        showsBuildings={true}
+        showsTraffic={false}
+        onMapReady={requestLocationPermission}
+      >
         <Marker
           coordinate={{
             latitude: location.latitude,
@@ -302,21 +341,19 @@ const MapComponent: React.FC<MapComponentProps> = ({
           title="Your Location"
         />
 
-        {/* Online radius circle */}
         {isOnline && (
           <Circle
             center={{
               latitude: location.latitude,
               longitude: location.longitude,
             }}
-            radius={2000} // 2km radius
+            radius={2000}
             fillColor="rgba(74, 144, 226, 0.2)"
             strokeColor="rgba(74, 144, 226, 0.5)"
             strokeWidth={2}
           />
         )}
 
-        {/* Ride request markers */}
         {rideRequest && (
           <>
             <Marker
@@ -333,7 +370,6 @@ const MapComponent: React.FC<MapComponentProps> = ({
         )}
       </MapView>
 
-      {/* Bottom Content */}
       <View style={styles.bottomContent}>
         <View style={styles.statusSection}>
           <Text style={styles.greeting}>Good Morning! {driverName}</Text>
@@ -353,11 +389,6 @@ const MapComponent: React.FC<MapComponentProps> = ({
         {isOnline && !rideRequest && (
           <View style={styles.lookingForRideSection}>
             <View style={styles.lookingAnimation}>
-              {/* <Image
-                source={require('../../assets/images/looking_for_ride.png')}
-                style={styles.lookingImage}
-                resizeMode="contain"
-              /> */}
               <View style={styles.placeholderImage}>
                 <Text style={styles.placeholderText}>🚗</Text>
                 <Text style={styles.placeholderSubtext}>Looking for rides...</Text>
@@ -381,7 +412,6 @@ const MapComponent: React.FC<MapComponentProps> = ({
         )}
       </View>
 
-      {/* Navigation Bar */}
       <View style={styles.navigationBar}>
         <TouchableOpacity style={styles.navItem}>
           <Text style={[styles.navIcon, styles.activeNavIcon]}>🏠</Text>
@@ -404,7 +434,6 @@ const MapComponent: React.FC<MapComponentProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Ride Request Modal */}
       {renderRideRequestModal()}
     </View>
   );

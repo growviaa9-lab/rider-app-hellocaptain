@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Appbar, Avatar } from 'react-native-paper';
-import { useTheme } from '../context/ThemeContext'; // Assuming you have this context
+import { View, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { Appbar, Avatar, Text } from 'react-native-paper';
+import { useTheme } from '../context/ThemeContext';
 import MapComponent from '../components/Map';
-import firestore from '@react-native-firebase/firestore';
-import { Buffer } from 'buffer'; // Import Buffer for Basic Auth
+import { Buffer } from 'buffer';
 
 // --- 1. API Configuration ---
 const API_CONFIG = {
@@ -25,21 +24,10 @@ interface Location {
   bearing?: number;
 }
 
-interface RideRequest {
-  id: string;
-  pickupLocation: { latitude: number; longitude: number; address: string; };
-  dropLocation: { latitude: number; longitude: number; address: string; };
-  distance: string;
-  earnings: string;
-  customerRating: number;
-  timer: number;
-}
-
 interface DriverProfile {
   id: string;
   driver_name: string;
   phone_number: string;
-  // Add other fields as needed
 }
 
 interface HomeScreenProps {
@@ -51,12 +39,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onProfilePress }) => {
   const { theme } = useTheme();
   const [isOnline, setIsOnline] = useState(false);
   const [currentEarnings] = useState('₹3,467.00');
-  const [rideRequest, setRideRequest] = useState<RideRequest | null>(null);
   const [driverProfile, setDriverProfile] = useState<DriverProfile | null>(null);
+  // ADDED: Loading state to provide user feedback while fetching initial data
+  const [isLoading, setIsLoading] = useState(true);
 
-  // --- useEffect to Fetch Initial Driver Profile & Status ---
+  // This hook fetches the driver's profile and initial online status
   useEffect(() => {
-    // In a real app, this object would come from your login/auth state
     const loggedInDriverCredentials = {
       id: 'D1754461954',
       phone_number: '918218289370',
@@ -78,76 +66,44 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onProfilePress }) => {
 
         if (response.ok) {
           const result = await response.json();
-          if (result.message === 'success' && result.data_driver && result.data_driver.length > 0) {
+          // More robust check on the response data
+          if (result.message === 'success' && Array.isArray(result.data_driver) && result.data_driver.length > 0) {
             const profile = result.data_driver[0];
             setDriverProfile(profile);
+            // The API sends status as a string '1' for online
             const isDriverOnline = result.driver_status === '1';
             setIsOnline(isDriverOnline);
-            console.log(`Profile for ${profile.driver_name} loaded. Initial status: ${isDriverOnline ? 'Online' : 'Offline'}`);
           } else {
-            Alert.alert('Error', 'Could not retrieve your driver profile. Response: ' + result.message);
+            console.error("API Error: Unexpected response structure", result);
+            Alert.alert('Error', 'Could not retrieve your driver profile. The server returned an unexpected response.');
           }
         } else {
-          Alert.alert('Error', `Failed to connect to the server. Status: ${response.status}`);
+          const errorText = await response.text();
+          console.error("API Error: Failed to connect", response.status, errorText);
+          Alert.alert('Error', `Failed to connect to the server (Status: ${response.status}).`);
         }
       } catch (error) {
         console.error('Error fetching driver profile:', error);
         Alert.alert('Error', 'A network error occurred while fetching your profile.');
+      } finally {
+        // Ensure loading is always turned off after the fetch attempt
+        setIsLoading(false);
       }
     };
 
     fetchDriverProfile();
-  }, []); // Empty array means this runs only once when the screen loads
+  }, []);
 
-  // --- Firestore listener for rides ---
-  useEffect(() => {
-    if (!isOnline || !driverProfile) {
-      if (rideRequest) setRideRequest(null);
-      return;
-    }
-
-    const unsubscribe = firestore()
-      .collection('ride_bids')
-      .where('bid', '==', 'true')
-      .limit(1)
-      .onSnapshot(querySnapshot => {
-        const newBids: RideRequest[] = [];
-        querySnapshot.forEach(documentSnapshot => {
-          const data = documentSnapshot.data();
-          newBids.push({
-            id: documentSnapshot.id,
-            // --- THE FIX IS HERE ---
-            // Explicitly convert coordinate strings from Firestore to numbers
-            pickupLocation: {
-              latitude: Number(data.start_latitude),
-              longitude: Number(data.start_longitude),
-              address: data.pickup_address,
-            },
-            dropLocation: {
-              latitude: Number(data.end_latitude),
-              longitude: Number(data.end_longitude),
-              address: data.destination_address,
-            },
-            distance: `${data.distance} KM`,
-            earnings: `₹${data.final_cost}`,
-            customerRating: data.rate || 4.5,
-            timer: 50,
-          });
-        });
-        setRideRequest(newBids.length > 0 ? newBids[0] : null);
-      }, error => {
-        console.error("Firestore Listener Error:", error);
-        Alert.alert("Listener Error", "Could not fetch new rides. Check your Firestore rules and connectivity.");
-      });
-
-    return () => unsubscribe();
-  }, [isOnline, driverProfile]);
-
-  // --- Handler Functions (No changes needed below this line) ---
+  // --- Handler Functions ---
   const handleLocationUpdate = async (location: Location) => {
-    if (!driverProfile) return;
+    // Guard clause: Don't send updates if the profile isn't loaded yet
+    if (!driverProfile) {
+        console.log("Location update skipped: Driver profile not loaded yet.");
+        return;
+    }
     try {
-      await fetch(`${API_CONFIG.BASE_URL}/driver/update_location`, {
+      // UPDATED: Check the response to see if the update was successful
+      const response = await fetch(`${API_CONFIG.BASE_URL}/driver/update_location`, {
         method: 'POST',
         headers: { 'Authorization': `Basic ${basicAuthToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -157,72 +113,52 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onProfilePress }) => {
           driver_id: driverProfile.id,
         }),
       });
+      if (!response.ok) {
+          // Provide feedback if the location update fails
+          console.warn('Could not sync location with server.');
+      } else {
+          console.log(`Location updated successfully: ${location.latitude}, ${location.longitude}`);
+      }
     } catch (error) {
       console.error('Error updating location:', error);
     }
   };
 
+  // UPDATED: This function now waits for server confirmation before updating the UI
   const handleToggleOnlineStatus = async () => {
     if (!driverProfile) return;
+    
     const newStatus = !isOnline;
-    setIsOnline(newStatus);
+
     try {
       const response = await fetch(`${API_CONFIG.BASE_URL}/driver/turning_on`, {
         method: 'POST',
         headers: { 'Authorization': `Basic ${basicAuthToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: driverProfile.id, is_turn: newStatus }),
       });
-      const result = await response.json();
-      if (result.message !== 'success') {
-        Alert.alert('Error', 'Could not update status. Please try again.');
-        setIsOnline(!newStatus);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'A network error occurred.');
-      setIsOnline(!newStatus);
-    }
-  };
 
-  const handleAcceptRide = async (rideId: string) => {
-    if (!driverProfile) return;
-    try {
-      await firestore().collection('ride_bids').doc(rideId).update({
-        bid: 'false',
-        driver_id: driverProfile.id
-      });
+      const result = await response.json();
       
-      const response = await fetch(`${API_CONFIG.BASE_URL}/driver/accept`, {
-        method: 'POST',
-        headers: { 'Authorization': `Basic ${basicAuthToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: driverProfile.id, transaction_id: rideId }),
-      });
-
-      const result = await response.json();
-      if (result.message === 'berhasil') {
-        Alert.alert('Success', 'Ride has been accepted!');
-        setRideRequest(null);
+      // Only update the UI state if the server confirms the change
+      if (response.ok && result.message === 'success') {
+        setIsOnline(newStatus);
       } else {
-        Alert.alert('Failed', `Could not accept ride: ${result.message}`);
-        await firestore().collection('ride_bids').doc(rideId).update({ bid: 'true' });
+        Alert.alert('Error', 'Could not update status. Please try again.');
       }
     } catch (error) {
-      Alert.alert('Error', 'An error occurred while accepting the ride.');
-      await firestore().collection('ride_bids').doc(rideId).update({ bid: 'true' });
+      Alert.alert('Error', 'A network error occurred while updating your status.');
     }
   };
 
-  const handleRejectRide = async (rideId: string) => {
-    console.log('Ride rejected:', rideId);
-    try {
-       await firestore().collection('ride_bids').doc(rideId).update({
-         bid: 'false',
-       });
-       setRideRequest(null);
-    } catch (error) {
-      console.error('Error rejecting ride:', error);
-      Alert.alert('Error', 'Could not reject ride.');
-    }
-  };
+  // Show a loading screen while the initial profile is being fetched
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>Syncing your account...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -239,9 +175,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onProfilePress }) => {
         onToggleOnlineStatus={handleToggleOnlineStatus}
         currentEarnings={currentEarnings}
         driverName={driverProfile?.driver_name || ''}
-        rideRequest={rideRequest}
-        onAcceptRide={handleAcceptRide}
-        onRejectRide={handleRejectRide}
         showHeader={false}
       />
     </View>
@@ -251,6 +184,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onProfilePress }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   profileButton: { marginRight: 16 },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#333333',
+  },
 });
 
 export default HomeScreen;
