@@ -8,24 +8,16 @@ import {
 import { Text, Card } from 'react-native-paper';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage, Language } from '../context/LanguageContext';
-import { useNavigation } from '@react-navigation/native';
 
-// interface LanguageSelectionScreenProps {
-//   onLanguageSelected: () => void;
-// }
+interface LanguageSelectionScreenProps {
+  onLanguageSelected: () => void;
+}
 
-const LanguageSelectionScreen: React.FC = ({
+const LanguageSelectionScreen: React.FC<LanguageSelectionScreenProps> = ({
+  onLanguageSelected,
 }) => {
   const { theme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
-  const navigation = useNavigation();
-
-  const onLanguageSelected = () => {
-    // Save the selected language to AsyncStorage
-    // AsyncStorage.setItem('language', language);
-    // Navigate to the next screen
-    navigation.navigate('LocationPermission' as never);
-  };
 
   const handleLanguageSelect = (selectedLanguage: Language) => {
     setLanguage(selectedLanguage);

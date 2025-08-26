@@ -1,238 +1,327 @@
-import React, { useState, useEffect } from 'react';
-import { AppState, Alert, PermissionsAndroid } from 'react-native';
-import { PaperProvider } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import React, { useEffect, useState } from 'react';
+import { BottomNavigation, PaperProvider } from 'react-native-paper';
 import { LanguageProvider } from './src/context/LanguageContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 
-// --- Firebase Messaging Imports ---
-import messaging from '@react-native-firebase/messaging';
-
-// --- Navigation Imports ---
-import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+// --- 1. Import Navigation Components ---
+import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-// --- Screen Imports ---
-import SplashScreen from './src/screens/SplashScreen';
-import LocationPermissionScreen from './src/screens/LocationPermissionScreen';
+// Import screens from their own files
+import HomeScreen from './src/screens/HomeScreen';
 import LanguageSelectionScreen from './src/screens/LanguageSelectionScreen';
+import LocationPermissionScreen from './src/screens/LocationPermissionScreen';
+import LoginScreen from './src/screens/LoginScreen';
 import OnboardingScreen1 from './src/screens/OnboardingScreen1';
 import OnboardingScreen2 from './src/screens/OnboardingScreen2';
 import OnboardingScreen3 from './src/screens/OnboardingScreen3';
-import LoginScreen from './src/screens/LoginScreen';
-import RegisterScreen from './src/screens/RegisterScreen';
+import ProfileNavigator from './src/navigation/ProfileNavigator';
 import RegisterOTPScreen from './src/screens/RegisterOTPScreen';
-import HomeScreen from './src/screens/HomeScreen';
+import RegisterScreen from './src/screens/RegisterScreen';
 import RidesScreen from './src/screens/RidesScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
-import InboxScreen from './src/screens/InboxScreen';
-import ChatScreen from './src/screens/ChatScreen';
-import RidesDetail from './src/screens/RidesDetail';
-import NewOrderScreen from './src/screens/NewOrderScreen'; // Screen to display new ride requests
+import SplashScreen from './src/screens/SplashScreen';
+// --- 2. Import InboxScreen and ChatScreen ---
+import ChatScreen from './src/screens/ChatScreen'; // This is the individual chat view
+import InboxScreen from './src/screens/InboxScreen'; // This will be the list of chats
+// --- 3. Define the Chat Navigation Stack ---
+// This creates a separate navigation flow for your chat feature
 
-// --- Background Notification Handler ---
-// This function MUST be a top-level function (outside of any class)
-messaging().setBackgroundMessageHandler(async remoteMessage => {
-  console.log('Message handled in the background!', remoteMessage);
-  // The OS will display the notification automatically. You can add custom logic here if needed.
-});
-
-// --- Navigation Reference ---
-// This allows navigation from outside of the component tree (e.g., from a notification listener)
-export const navigationRef = createNavigationContainerRef();
-
-// --- Navigator Setups ---
 const ChatStack = createStackNavigator();
-const RidesStack = createStackNavigator();
+// const RidesStack = createStackNavigator();
 
-const ChatNavigator = () => (
-  <ChatStack.Navigator screenOptions={{ headerShown: false }}>
-    <ChatStack.Screen name="Inbox" component={InboxScreen} />
-    <ChatStack.Screen name="Chat" component={ChatScreen} />
-  </ChatStack.Navigator>
-);
-
-const RidesNavigator = () => (
-  <RidesStack.Navigator screenOptions={{ headerShown: false }}>
-    <RidesStack.Screen name="RideHistory" component={RidesScreen} />
-    <RidesStack.Screen name="RidesDetail" component={RidesDetail} />
-  </RidesStack.Navigator>
-);
-
-const Tab = createBottomTabNavigator();
-const MainAppTabs = () => {
-  const [profileVisible, setProfileVisible] = useState(false);
-
-  const CustomHomeScreen = (props: any) => (
-    <HomeScreen {...props} onProfilePress={() => setProfileVisible(true)} />
-  );
-
+const ChatNavigator = () => {
   return (
-    <>
-      <Tab.Navigator screenOptions={{ headerShown: false }}>
-        {/* NOTE: You will need to add your custom tab bar icons back here */}
-        <Tab.Screen name="Home" component={CustomHomeScreen} />
-        <Tab.Screen name="Rides" component={RidesNavigator} />
-        <Tab.Screen
-          name="ChatTab"
-          component={ChatNavigator}
-          options={{ title: 'Chat' }}
-        />
-      </Tab.Navigator>
-      <ProfileScreen visible={profileVisible} onClose={() => setProfileVisible(false)} />
-    </>
+    <ChatStack.Navigator>
+      <ChatStack.Screen
+        name="Inbox"
+        component={InboxScreen}
+        options={{ headerShown: false }}
+      />
+      <ChatStack.Screen
+        name="Chat"
+        component={ChatScreenWrapper}
+        options={{ headerShown: false }} // You can customize this header if needed
+      />
+    </ChatStack.Navigator>
   );
 };
 
-// --- Root Stack Navigator ---
-const RootStack = createStackNavigator();
-const AppNavigator = () => {
+// Wrapper component to provide required props to ChatScreen
+const ChatScreenWrapper: React.FC = () => {
+  const mockNavigation = {
+    navigate: () => {},
+    goBack: () => {},
+    setOptions: () => {},
+  } as any;
+
+  const mockRoute = {
+    key: 'Chat',
+    name: 'Chat',
+    params: { chatId: 'default' },
+  } as any;
+
+  return <ChatScreen navigation={mockNavigation} route={mockRoute} />;
+};
+
+// const RidesNavigator = () => {
+//   return (
+//    <RidesStack.Navigator>
+//       <RidesStack.Screen
+//         name="RideHistory"
+//         component={RidesScreen}
+//         options={{ headerShown: false }}
+//       />
+//       <RidesStack.Screen
+//         name="RidesDetail"
+//         component={RidesDetail}
+//         options={{ headerShown: false }}
+//       />
+//     </RidesStack.Navigator>
+//   );
+// };
+
+// Wrapper component to provide required props to RidesScreen
+const RidesScreenWrapper: React.FC = () => {
+  const mockNavigation = {
+    navigate: () => {},
+    goBack: () => {},
+    setOptions: () => {},
+  } as any;
+
+  const mockRoute = {
+    key: 'RideHistory',
+    name: 'RideHistory',
+    params: undefined,
+  } as any;
+
+  return <RidesScreen navigation={mockNavigation} route={mockRoute} />;
+};
+
+// --- Main App with Bottom Navigation ---
+const MainAppScreen = () => {
+  const [index, setIndex] = useState(0);
+
+  const [routes] = useState([
+    {
+      key: 'home',
+      title: 'Home',
+      focusedIcon: 'home',
+      unfocusedIcon: 'home-outline',
+    },
+    {
+      key: 'rides',
+      title: 'Rides',
+      focusedIcon: 'car',
+      unfocusedIcon: 'car-outline',
+    },
+    {
+      key: 'chat',
+      title: 'Chat',
+      focusedIcon: 'message',
+      unfocusedIcon: 'message-outline',
+    },
+    {
+      key: 'profile',
+      title: 'Profile',
+      focusedIcon: 'account',
+      unfocusedIcon: 'account-outline',
+    },
+  ]);
+
+  const renderScene = ({ route }: { route: { key: string } }) => {
+    switch (route.key) {
+      case 'home':
+        return <HomeScreen />;
+      case 'rides':
+        return <RidesScreenWrapper />;
+      case 'chat':
+        return <ChatNavigator />;
+      case 'profile':
+        return <ProfileNavigator />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <BottomNavigation
+      navigationState={{ index, routes }}
+      onIndexChange={setIndex}
+      renderScene={renderScene}
+    />
+  );
+};
+
+const AppNavigator: React.FC = () => {
+  const [currentScreen, setCurrentScreen] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
-  const [initialRouteName, setInitialRouteName] = useState<string | null>(null);
+  const [userPhoneNumber, setUserPhoneNumber] = useState<string>('');
 
   useEffect(() => {
-    const checkInitialRoute = async () => {
-      try {
-        const hasSelectedLanguage = await AsyncStorage.getItem('language');
-        const hasLocationPermission = await AsyncStorage.getItem('locationPermission');
-        const hasCompletedOnboarding = await AsyncStorage.getItem('onboardingCompleted');
-        const isLoggedIn = await AsyncStorage.getItem('isLoggedIn');
-
-        if (!hasSelectedLanguage) {
-          setInitialRouteName('LanguageSelection');
-        } else if (!hasLocationPermission) {
-          setInitialRouteName('LocationPermission');
-        } else if (!hasCompletedOnboarding) {
-          setInitialRouteName('Onboarding1');
-        } else if (!isLoggedIn) {
-          setInitialRouteName('Login');
-        } else {
-          setInitialRouteName('MainApp');
-        }
-      } catch (error) {
-        console.error('Error checking initial route:', error);
-        setInitialRouteName('Login'); // Default to login on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
     checkInitialRoute();
   }, []);
 
-  if (isLoading || !initialRouteName) {
-    return <SplashScreen onFinish={() => { setIsLoading(false); }} />;
+  const checkInitialRoute = async () => {
+    try {
+      const hasSelectedLanguage = await AsyncStorage.getItem('language');
+      const hasLocationPermission = await AsyncStorage.getItem(
+        'locationPermission',
+      );
+      const hasCompletedOnboarding = await AsyncStorage.getItem(
+        'onboardingCompleted',
+      );
+      const isLoggedIn = await AsyncStorage.getItem('isLoggedIn');
+
+      if (!hasSelectedLanguage) {
+        setCurrentScreen('LanguageSelection');
+      } else if (!hasLocationPermission) {
+        setCurrentScreen('LocationPermission');
+      } else if (!hasCompletedOnboarding) {
+        setCurrentScreen('Onboarding1');
+      } else if (!isLoggedIn) {
+        setCurrentScreen('Login');
+      } else {
+        setCurrentScreen('Main');
+      }
+    } catch (error) {
+      console.error('Error checking initial route:', error);
+      setCurrentScreen('Login');
+    }
+  };
+
+  const handleSplashFinish = () => {
+    setIsLoading(false);
+  };
+
+  const handleLanguageSelected = () => {
+    setCurrentScreen('LocationPermission');
+  };
+
+  const handlePermissionGranted = async () => {
+    try {
+      await AsyncStorage.setItem('locationPermission', 'granted');
+      setCurrentScreen('Onboarding1');
+    } catch (error) {
+      console.error('Error saving location permission:', error);
+    }
+  };
+
+  const handleOnboarding1Continue = () => {
+    setCurrentScreen('Onboarding2');
+  };
+
+  const handleOnboarding2Continue = () => {
+    setCurrentScreen('Onboarding3');
+  };
+
+  const handleOnboarding3Continue = async () => {
+    try {
+      await AsyncStorage.setItem('onboardingCompleted', 'true');
+      setCurrentScreen('Login');
+    } catch (error) {
+      console.error('Error saving onboarding completion:', error);
+    }
+  };
+
+  const handleLoginSuccess = async () => {
+    try {
+      await AsyncStorage.setItem('isLoggedIn', 'true');
+      setCurrentScreen('Main');
+    } catch (error) {
+      console.error('Error saving login state:', error);
+    }
+  };
+
+  const handleNavigateToRegister = () => {
+    setCurrentScreen('Register');
+  };
+
+  const handleNavigateToLogin = () => {
+    setCurrentScreen('Login');
+  };
+
+  const handleRegisterSuccess = async (phoneNumber: string) => {
+    setUserPhoneNumber(phoneNumber);
+    setCurrentScreen('RegisterOTP');
+  };
+
+  const handleOTPVerified = async () => {
+    try {
+      await AsyncStorage.setItem('isLoggedIn', 'true');
+      setCurrentScreen('Main');
+    } catch (error) {
+      console.error('Error saving login state:', error);
+    }
+  };
+
+  const handleNavigateBackFromOTP = () => {
+    setCurrentScreen('Register');
+  };
+
+  if (isLoading) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
-  return (
-    <RootStack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
-      {/* Auth and Onboarding Screens */}
-      <RootStack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
-      <RootStack.Screen name="LocationPermission" component={LocationPermissionScreen} />
-      <RootStack.Screen name="Onboarding1" component={OnboardingScreen1} />
-      <RootStack.Screen name="Onboarding2" component={OnboardingScreen2} />
-      <RootStack.Screen name="Onboarding3" component={OnboardingScreen3} />
-      <RootStack.Screen name="Login" component={LoginScreen} />
-      <RootStack.Screen name="Register" component={RegisterScreen} />
-      <RootStack.Screen name="RegisterOTP" component={RegisterOTPScreen} />
-      
-      {/* Main App Screens */}
-      <RootStack.Screen name="MainApp" component={MainAppTabs} />
-
-      {/* Modal Screen for New Orders */}
-      <RootStack.Screen 
-        name="NewOrder" 
-        component={NewOrderScreen} 
-        options={{ presentation: 'modal', headerShown: false }} 
-      />
-    </RootStack.Navigator>
-  );
+  switch (currentScreen) {
+    case 'LanguageSelection':
+      return (
+        <LanguageSelectionScreen onLanguageSelected={handleLanguageSelected} />
+      );
+    case 'LocationPermission':
+      return (
+        <LocationPermissionScreen
+          onPermissionGranted={handlePermissionGranted}
+        />
+      );
+    case 'Onboarding1':
+      return <OnboardingScreen1 onContinue={handleOnboarding1Continue} />;
+    case 'Onboarding2':
+      return <OnboardingScreen2 onContinue={handleOnboarding2Continue} />;
+    case 'Onboarding3':
+      return <OnboardingScreen3 onContinue={handleOnboarding3Continue} />;
+    case 'Login':
+      return (
+        <LoginScreen
+          onLoginSuccess={handleLoginSuccess}
+          onNavigateToRegister={handleNavigateToRegister}
+        />
+      );
+    case 'Register':
+      return (
+        <RegisterScreen
+          onRegisterSuccess={handleRegisterSuccess}
+          onNavigateToLogin={handleNavigateToLogin}
+        />
+      );
+    case 'RegisterOTP':
+      return (
+        <RegisterOTPScreen
+          onOTPVerified={handleOTPVerified}
+          onNavigateBack={handleNavigateBackFromOTP}
+          phoneNumber={userPhoneNumber}
+        />
+      );
+    case 'Main':
+      return <MainAppScreen />;
+    default:
+      return null;
+  }
 };
 
-// --- App Content Wrapper ---
-const AppContent = () => {
+const AppContent: React.FC = () => {
   const { theme } = useTheme();
   return (
     <PaperProvider theme={theme}>
-      <NavigationContainer ref={navigationRef}>
+      {/* --- 5. Wrap the entire app in a NavigationContainer --- */}
+      <NavigationContainer>
         <AppNavigator />
       </NavigationContainer>
     </PaperProvider>
   );
 };
 
-// --- Main App Component ---
-const App = () => {
-
-  useEffect(() => {
-    // --- 1. Request Notification Permissions (Android 13+) ---
-    const requestUserPermission = async () => {
-      try {
-        await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
-      } catch (error) {
-        console.log('Notification permission request error: ', error);
-      }
-    };
-
-    requestUserPermission();
-
-    // --- 2. Handle Foreground Notifications ---
-    // This runs when a notification is received while the app is open.
-    const unsubscribeOnMessage = messaging().onMessage(async remoteMessage => {
-      console.log('A new FCM message arrived in foreground!', JSON.stringify(remoteMessage));
-      if (remoteMessage.data && navigationRef.isReady()) {
-        // Navigate to the NewOrder screen with the ride data
-        navigationRef.navigate('NewOrder', { rideData: remoteMessage.data });
-      }
-    });
-
-    // --- 3. Handle Tapped Notifications (from Background) ---
-    // This runs when the user taps a notification and the app was in the background.
-    const unsubscribeOnOpened = messaging().onNotificationOpenedApp(remoteMessage => {
-      console.log('Notification caused app to open from background state:', remoteMessage);
-      if (remoteMessage.data && navigationRef.isReady()) {
-        navigationRef.navigate('NewOrder', { rideData: remoteMessage.data });
-      }
-    });
-
-    // --- 4. Handle Tapped Notifications (from Quit State) ---
-    // This checks if the app was opened from a terminated state by a notification.
-    messaging()
-      .getInitialNotification()
-      .then(remoteMessage => {
-        if (remoteMessage && remoteMessage.data) {
-          console.log('Notification caused app to open from quit state:', remoteMessage);
-          // We add a small delay to ensure the navigator is ready
-          setTimeout(() => {
-            if (navigationRef.isReady()) {
-              navigationRef.navigate('NewOrder', { rideData: remoteMessage.data });
-            }
-          }, 1000);
-        }
-      });
-
-    // --- 5. Get and Log the FCM Token (for testing) ---
-    const getToken = async () => {
-      try {
-        const token = await messaging().getToken();
-        if (token) {
-          console.log('--- FCM REGISTRATION TOKEN ---');
-          console.log(token);
-          console.log('-----------------------------');
-        }
-      } catch (error) {
-        console.error('Error getting FCM token', error);
-      }
-    };
-    getToken();
-
-    // Cleanup listeners on component unmount
-    return () => {
-      unsubscribeOnMessage();
-      unsubscribeOnOpened();
-    };
-  }, []);
-
+const App: React.FC = () => {
   return (
     <ThemeProvider>
       <LanguageProvider>
