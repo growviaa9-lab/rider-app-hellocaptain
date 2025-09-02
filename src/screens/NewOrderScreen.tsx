@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
-import { Text, Button, Card, Title, Paragraph, Avatar } from 'react-native-paper';
+// MODIFIED: Added TextInput import
+import { Text, Button, Card, Title, Paragraph, Avatar, TextInput } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Import the firestore library
@@ -20,29 +21,15 @@ const NewOrderScreen = ({ route }: { route: any }) => {
 
 
   const handlePlaceBid = async () => {
-    // --- MODIFICATION START ---
     // Using static user data to bypass the "user not found" error for testing.
-    
     const staticUser = {
       id: 'D1754461954',       // The static driver ID you provided
-      fullName: 'Test Driver',  // A placeholder name
+      fullName: 'Lokik',  // A placeholder name
       rating: '4.9',            // A placeholder rating
     };
 
-    /*
-    // This section is temporarily commented out to use static data.
-    const userData = await AsyncStorage.getItem('user');
-    if (!userData) {
-      Alert.alert('Error', 'Could not find user data. Please log in again.');
-      return;
-    }
-    const user = JSON.parse(userData);
-    */
-
-    // We now use the staticUser object directly.
     const user = staticUser; 
     const driverId = user.id;
-    // --- MODIFICATION END ---
     
     const rideId = rideData.id; 
     console.log("driver id: ", driverId);
@@ -54,8 +41,8 @@ const NewOrderScreen = ({ route }: { route: any }) => {
     const bidData = {
       amount: bidAmount.toFixed(2),
       driver_id: driverId,
-      name: user.fullName, // Using name from our static object
-      rating: user.rating, // Using rating from our static object
+      name: user.fullName,
+      rating: user.rating,
       timestamp: firestore.FieldValue.serverTimestamp(),
     };
 
@@ -130,7 +117,7 @@ const NewOrderScreen = ({ route }: { route: any }) => {
           <Title style={styles.sectionTitle}>Order Summary</Title>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Distance</Text>
-            <Text style={styles.detailValue}>{rideData.distance ? `${rideData.distance} KM` : 'N/A'}</Text>
+            <Text style={styles.detailValue}>{rideData.distance ? `${(rideData.distance / 1000).toFixed(2)} KM` : 'N/A'}</Text>
           </View>
           <View style={styles.totalDivider} />
           <View style={styles.detailRow}>
@@ -140,11 +127,24 @@ const NewOrderScreen = ({ route }: { route: any }) => {
 
           <View style={styles.divider} />
           <Title style={styles.sectionTitle}>Adjust Fare (Bid)</Title>
+          
+          {/* --- MODIFIED: BIDDING UI --- */}
           <View style={styles.bidContainer}>
               <Button mode="contained" onPress={handleDecreaseBid} style={styles.bidButton} icon="minus" />
-              <Text style={styles.bidAmountText}>₹{bidAmount.toFixed(2)}</Text>
+              
+              <TextInput
+                style={styles.bidInput}
+                value={bidAmount.toString()}
+                onChangeText={text => setBidAmount(parseFloat(text) || 0)}
+                keyboardType="numeric"
+                mode="outlined"
+                dense
+                left={<TextInput.Affix text="₹ " />}
+              />
+              
               <Button mode="contained" onPress={handleIncreaseBid} style={styles.bidButton} icon="plus" />
           </View>
+          {/* --- END MODIFICATION --- */}
           
         </Card.Content>
         <Card.Actions style={styles.actions}>
@@ -160,7 +160,7 @@ const NewOrderScreen = ({ route }: { route: any }) => {
   );
 };
 
-// Styles remain the same
+// MODIFIED: Added new styles for the bidding UI and removed the old one
 const styles = StyleSheet.create({
     container: {
     flex: 1,
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 10,
-    shadowColor: '#000',
+    shadowColor: '#000000ff',
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   bidContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
   },
@@ -282,17 +282,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     minWidth: 50,
   },
-  bidAmountText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0e4d5f',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderColor: '#e0e0e0',
-    borderWidth: 1,
-    borderRadius: 8,
-    minWidth: 120,
+  bidInput: { // New style for the TextInput
+    flex: 1,
     textAlign: 'center',
+    fontSize: 30,
+    marginHorizontal: 10,
+    backgroundColor: '#161111ff',
+    // color: '#000000ff',
   },
   actions: {
     marginTop: 20,
@@ -322,3 +318,4 @@ const styles = StyleSheet.create({
 });
 
 export default NewOrderScreen;
+

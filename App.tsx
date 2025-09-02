@@ -5,8 +5,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
 
-// --- Firebase Messaging Imports ---
+// --- Firebase & Notification Imports ---
 import messaging from '@react-native-firebase/messaging';
+import notifee from '@notifee/react-native'; // <-- NEW: Import Notifee
 
 // --- Navigation Imports ---
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
@@ -25,12 +26,11 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import RegisterOTPScreen from './src/screens/RegisterOTPScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import RidesScreen from './src/screens/RidesScreen';
-import ProfileScreen from './src/screens/ProfileScreen'; // This component will be modified
+import ProfileScreen from './src/screens/ProfileScreen';
 import InboxScreen from './src/screens/InboxScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import RidesDetail from './src/screens/RidesDetail';
 import NewOrderScreen from './src/screens/NewOrderScreen';
-// Note: DriverRatingsScreen will now be imported inside ProfileScreen, not here.
 
 // --- Background Notification Handler ---
 messaging().setBackgroundMessageHandler(async remoteMessage => {
@@ -40,10 +40,9 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
 // --- Navigation Reference ---
 export const navigationRef = createNavigationContainerRef();
 
-// --- Navigator Setups ---
+// --- Navigator Setups (Unchanged) ---
 const ChatStack = createStackNavigator();
 const RidesStack = createStackNavigator();
-// We no longer need a ProfileStack
 
 const ChatNavigator = () => (
   <ChatStack.Navigator screenOptions={{ headerShown: false }}>
@@ -59,13 +58,9 @@ const RidesNavigator = () => (
   </RidesStack.Navigator>
 );
 
-// The ProfileNavigator has been removed as it's not needed for the new logic.
-
 const Tab = createBottomTabNavigator();
 const MainAppTabs = () => {
   const [profileVisible, setProfileVisible] = useState(false);
-
-  // This custom component passes the function to open the profile panel
   const CustomHomeScreen = (props: any) => (
     <HomeScreen {...props} onProfilePress={() => setProfileVisible(true)} />
   );
@@ -73,7 +68,7 @@ const MainAppTabs = () => {
   return (
     <>
       <Tab.Navigator screenOptions={{ headerShown: false }}>
-        {/* NOTE: You will need to add your custom tab bar icons back here */}
+        {/* You will need to add your custom tab bar icons back here */}
         <Tab.Screen name="Home" component={CustomHomeScreen} />
         <Tab.Screen name="Rides" component={RidesNavigator} />
         <Tab.Screen
@@ -82,13 +77,12 @@ const MainAppTabs = () => {
           options={{ title: 'Chat' }}
         />
       </Tab.Navigator>
-      {/* This renders the ProfileScreen as an overlay */}
       <ProfileScreen visible={profileVisible} onClose={() => setProfileVisible(false)} />
     </>
   );
 };
 
-// --- Root Stack Navigator ---
+// --- Root Stack Navigator (Unchanged) ---
 const RootStack = createStackNavigator();
 const AppNavigator = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -115,7 +109,7 @@ const AppNavigator = () => {
         }
       } catch (error) {
         console.error('Error checking initial route:', error);
-        setInitialRouteName('Login'); // Default to login on error
+        setInitialRouteName('Login');
       } finally {
         setIsLoading(false);
       }
@@ -129,7 +123,6 @@ const AppNavigator = () => {
 
   return (
     <RootStack.Navigator initialRouteName={initialRouteName} screenOptions={{ headerShown: false }}>
-      {/* Auth and Onboarding Screens */}
       <RootStack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
       <RootStack.Screen name="LocationPermission" component={LocationPermissionScreen} />
       <RootStack.Screen name="Onboarding1" component={OnboardingScreen1} />
@@ -138,11 +131,7 @@ const AppNavigator = () => {
       <RootStack.Screen name="Login" component={LoginScreen} />
       <RootStack.Screen name="Register" component={RegisterScreen} />
       <RootStack.Screen name="RegisterOTP" component={RegisterOTPScreen} />
-      
-      {/* Main App Screens */}
       <RootStack.Screen name="MainApp" component={MainAppTabs} />
-
-      {/* Modal Screen for New Orders */}
       <RootStack.Screen 
         name="NewOrder" 
         component={NewOrderScreen} 
@@ -152,7 +141,7 @@ const AppNavigator = () => {
   );
 };
 
-// --- App Content Wrapper ---
+// --- App Content Wrapper (Unchanged) ---
 const AppContent = () => {
   const { theme } = useTheme();
   return (
@@ -168,26 +157,51 @@ const AppContent = () => {
 const App = () => {
 
   useEffect(() => {
-    // --- 1. Request Notification Permissions (Android 13+) ---
     const requestUserPermission = async () => {
-      try {
-        await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
-      } catch (error) {
-        console.log('Notification permission request error: ', error);
-      }
+      await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
     };
 
-    requestUserPermission();
+    // --- NEW: Function to create a notification channel ---
+    const createNotificationChannel = async () => {
+      // Create a channel (required for Android)
+      await notifee.createChannel({
+        id: 'new-orders',
+        name: 'New Order Notifications',
+        sound: 'default', // Optional: specify a sound
+      });
+    }
 
-    // --- 2. Handle Foreground Notifications ---
+    requestUserPermission();
+    createNotificationChannel(); // Call the function to create the channel
+
+    // --- MODIFIED: Handle Foreground Notifications ---
     const unsubscribeOnMessage = messaging().onMessage(async remoteMessage => {
       console.log('A new FCM message arrived in foreground!', JSON.stringify(remoteMessage));
+
+      // --- NEW: Display a local notification ---
+      try {
+        await notifee.displayNotification({
+          title: 'New Order', // Your custom title
+          body: 'Please check the app for the new order', // Your custom body
+          android: {
+            channelId: 'new-orders', // Use the channel we created
+            pressAction: {
+              id: 'default', // This will open the app when the notification is tapped
+            },
+          },
+        });
+      } catch (error) {
+          console.error('Error displaying notification:', error);
+      }
+      // --- END NEW SECTION ---
+
+      // Navigate to the NewOrderScreen as before
       if (remoteMessage.data && navigationRef.isReady()) {
         navigationRef.navigate('NewOrder', { rideData: remoteMessage.data });
       }
     });
 
-    // --- 3. Handle Tapped Notifications (from Background) ---
+    // --- All other listeners remain the same ---
     const unsubscribeOnOpened = messaging().onNotificationOpenedApp(remoteMessage => {
       console.log('Notification caused app to open from background state:', remoteMessage);
       if (remoteMessage.data && navigationRef.isReady()) {
@@ -195,7 +209,6 @@ const App = () => {
       }
     });
 
-    // --- 4. Handle Tapped Notifications (from Quit State) ---
     messaging()
       .getInitialNotification()
       .then(remoteMessage => {
@@ -209,22 +222,16 @@ const App = () => {
         }
       });
 
-    // --- 5. Get and Log the FCM Token (for testing) ---
     const getToken = async () => {
-      try {
-        const token = await messaging().getToken();
-        if (token) {
-          console.log('--- FCM REGISTRATION TOKEN ---');
-          console.log(token);
-          console.log('-----------------------------');
-        }
-      } catch (error) {
-        console.error('Error getting FCM token', error);
+      const token = await messaging().getToken();
+      if (token) {
+        console.log('--- FCM REGISTRATION TOKEN ---');
+        console.log(token);
+        console.log('-----------------------------');
       }
     };
     getToken();
 
-    // Cleanup listeners on component unmount
     return () => {
       unsubscribeOnMessage();
       unsubscribeOnOpened();
