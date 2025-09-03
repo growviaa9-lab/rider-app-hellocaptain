@@ -1,76 +1,75 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, Image } from 'react-native';
-import { Text, Button, Card, Title, Paragraph, Avatar } from 'react-native-paper';
+import { View, StyleSheet, Alert } from 'react-native';
+// MODIFIED: Added TextInput import
+import { Text, Button, Card, Title, Paragraph, Avatar, TextInput } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-import { Buffer } from 'buffer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// Optional: for playing a sound
-// import SoundPlayer from 'react-native-sound-player';
-
-const API_CONFIG = {
-  AUTH_USER: 'hellocaptain',
-  AUTH_PASS: 'hellocaptain@123',
-};
+// Import the firestore library
+import firestore from '@react-native-firebase/firestore';
 
 const NewOrderScreen = ({ route }: { route: any }) => {
   const { rideData } = route.params;
   const navigation = useNavigation();
-  const [timer, setTimer] = useState(60); // Timer is now 60 seconds
+  const [timer, setTimer] = useState(60);
+  const [bidAmount, setBidAmount] = useState(0);
 
-  // --- Sound Effect on Screen Load ---
   useEffect(() => {
-    try {
-      // Uncomment this line if you add a sound library
-      // SoundPlayer.playSoundFile('notification_sound', 'mp3');
-    } catch (e) {
-      console.log(`cannot play sound file`, e);
+    if (rideData && rideData.price) {
+      setBidAmount(parseFloat(rideData.price));
+    }
+  }, [rideData]);
+
+
+  const handlePlaceBid = async () => {
+    // Using static user data to bypass the "user not found" error for testing.
+    const staticUser = {
+      id: 'D1754461954',       // The static driver ID you provided
+      fullName: 'Lokik',  // A placeholder name
+      rating: '4.9',            // A placeholder rating
+    };
+
+    const user = staticUser; 
+    const driverId = user.id;
+    
+    const rideId = rideData.id; 
+    console.log("driver id: ", driverId);
+    if (!rideId) {
+        Alert.alert('Error', 'Ride ID is missing from the ride data. Cannot place bid.');
+        return;
     }
 
-    // Cleanup sound on unmount
-    return () => {
-      try {
-        // SoundPlayer.stop();
-      } catch(e) {
-        console.log('cannot stop sound', e);
-      }
+    const bidData = {
+      amount: bidAmount.toFixed(2),
+      driver_id: driverId,
+      name: user.fullName,
+      rating: user.rating,
+      timestamp: firestore.FieldValue.serverTimestamp(),
     };
-  }, []);
 
-
-  const handleAcceptRide = async () => {
-    const userData = await AsyncStorage.getItem('user');
-    const user = userData ? JSON.parse(userData) : null;
-    const driverId = user ? user.id : 'D1754461954';
-
-    const basicAuthToken = Buffer.from(`${API_CONFIG.AUTH_USER}:${API_CONFIG.AUTH_PASS}`).toString('base64');
+    console.log(`--- Placing Bid on Ride ID: ${rideId} ---`);
+    console.log("Bid Data:", bidData);
 
     try {
-      const response = await fetch('https://app.hellocaptain.in/api/driver/accept', {
-        method: 'POST',
-        headers: { 'Authorization': `Basic ${basicAuthToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: driverId, transaction_id: rideData.transaction_id }),
-      });
-      const result = await response.json();
-      if (result.message === 'berhasil') {
-        Alert.alert('Success', 'Ride has been accepted!');
-        navigation.goBack();
-      } else {
-        Alert.alert('Failed', `Could not accept ride: ${result.message}`);
-        navigation.goBack();
-      }
-    } catch (error) {
-      Alert.alert('Error', 'An error occurred while accepting the ride.');
+      await firestore()
+        .collection('ride_bids')
+        .doc(rideId)
+        .collection('bids')
+        .add(bidData);
+
+      Alert.alert('Success', 'Your bid has been placed successfully!');
       navigation.goBack();
+
+    } catch (error) {
+      console.error("Error placing bid in Firestore:", error);
+      Alert.alert('Error', 'An error occurred while placing your bid.');
     }
   };
 
   const handleRejectRide = () => {
-    // In a full implementation, you might want to call a 'reject' API here
     console.log('Ride Rejected');
     navigation.goBack();
   };
 
-  // Countdown timer effect
   useEffect(() => {
     if (timer === 0) {
       handleRejectRide();
@@ -82,68 +81,78 @@ const NewOrderScreen = ({ route }: { route: any }) => {
     return () => clearInterval(interval);
   }, [timer]);
 
+  const handleIncreaseBid = () => {
+    setBidAmount(prevAmount => prevAmount + 10);
+  };
+
+  const handleDecreaseBid = () => {
+    const originalPrice = (rideData && parseFloat(rideData.price)) || 0;
+    setBidAmount(prevAmount => Math.max(originalPrice, prevAmount - 10));
+  };
+
   return (
     <View style={styles.container}>
       <Card style={styles.card}>
         <Card.Content>
-          {/* Top Panel */}
+          {/* UI now uses rideData prop again */}
           <View style={styles.topPanel}>
-            <Avatar.Icon size={50} icon="car" style={styles.serviceIcon} />
+            <Avatar.Icon size={50} icon="car" style={styles.serviceIcon} color="#FFF" />
             <View style={styles.serviceDetails}>
-              <Title style={styles.serviceTitle}>Booking</Title>
-              <Paragraph style={styles.serviceDescription}>Delivery Service</Paragraph>
+              <Title style={styles.serviceTitle}>New Booking Request</Title>
+              <Paragraph style={styles.serviceDescription}>{rideData.layanan || 'Delivery Service'}</Paragraph>
             </View>
             <View style={styles.timerContainer}>
               <Text style={styles.timerText}>{timer}</Text>
             </View>
           </View>
-
           <View style={styles.divider} />
-
-          {/* Location Details */}
-          <Title style={styles.sectionTitle}>Location</Title>
+          <Title style={styles.sectionTitle}>Location Details</Title>
           <View style={styles.locationRow}>
-            <Text style={styles.locationText}>{rideData.pickup_address}</Text>
+            <Text style={styles.locationText}>{rideData.pickup_address || 'Pickup address not available'}</Text>
           </View>
           <View style={styles.locationRow}>
-            <Text style={styles.locationText}>{rideData.destination_address}</Text>
+            <Text style={styles.locationText}>{rideData.destination_address || 'Destination address not available'}</Text>
           </View>
-
           <View style={styles.divider} />
-          
-          {/* Order Details */}
-          <Title style={styles.sectionTitle}>Order Detail</Title>
+          <Title style={styles.sectionTitle}>Order Summary</Title>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Distance</Text>
-            <Text style={styles.detailValue}>{rideData.distance} KM</Text>
+            <Text style={styles.detailValue}>{rideData.distance ? `${(rideData.distance / 1000).toFixed(2)} KM` : 'N/A'}</Text>
           </View>
-          
           <View style={styles.totalDivider} />
-
           <View style={styles.detailRow}>
-            <Title style={styles.totalLabel}>Total</Title>
-            <Title style={styles.totalValue}>₹{rideData.price}</Title>
+            <Title style={styles.totalLabel}>Original Fare</Title>
+            <Title style={styles.totalValue}>₹{rideData.price || '0.00'}</Title>
           </View>
 
+          <View style={styles.divider} />
+          <Title style={styles.sectionTitle}>Adjust Fare (Bid)</Title>
+          
+          {/* --- MODIFIED: BIDDING UI --- */}
+          <View style={styles.bidContainer}>
+              <Button mode="contained" onPress={handleDecreaseBid} style={styles.bidButton} icon="minus" />
+              
+              <TextInput
+                style={styles.bidInput}
+                value={bidAmount.toString()}
+                onChangeText={text => setBidAmount(parseFloat(text) || 0)}
+                keyboardType="numeric"
+                mode="outlined"
+                dense
+                left={<TextInput.Affix text="₹ " />}
+              />
+              
+              <Button mode="contained" onPress={handleIncreaseBid} style={styles.bidButton} icon="plus" />
+          </View>
+          {/* --- END MODIFICATION --- */}
+          
         </Card.Content>
-
-        {/* Action Buttons */}
         <Card.Actions style={styles.actions}>
-          <Button 
-            mode="contained" 
-            onPress={handleRejectRide} 
-            style={[styles.button, styles.rejectButton]}
-            labelStyle={styles.buttonLabel}
-          >
+          <Button mode="contained" onPress={handleRejectRide} style={[styles.button, styles.rejectButton]} labelStyle={styles.buttonLabel}>
             Reject
           </Button>
-          <Button 
-            mode="contained" 
-            onPress={handleAcceptRide} 
-            style={[styles.button, styles.acceptButton]}
-            labelStyle={styles.buttonLabel}
-          >
-            Accept
+          <Button mode="contained" onPress={handlePlaceBid} style={[styles.button, styles.acceptButton]} labelStyle={styles.buttonLabel}>
+            Place Bid
           </Button>
         </Card.Actions>
       </Card>
@@ -151,17 +160,23 @@ const NewOrderScreen = ({ route }: { route: any }) => {
   );
 };
 
+// MODIFIED: Added new styles for the bidding UI and removed the old one
 const styles = StyleSheet.create({
-  container: {
+    container: {
     flex: 1,
-    justifyContent: 'flex-end', // Aligns the card to the bottom
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.7)',
   },
   card: {
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 10,
+    shadowColor: '#000000ff',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 10,
   },
   topPanel: {
     flexDirection: 'row',
@@ -170,35 +185,39 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   serviceIcon: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#61dafb',
   },
   serviceDetails: {
     flex: 1,
     marginLeft: 15,
   },
   serviceTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
+    color: '#4d4a4a',
   },
   serviceDescription: {
-    color: 'grey',
+    color: '#4d4a4a',
+    fontSize: 14,
   },
   timerContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25, // Makes it a circle
-    backgroundColor: '#f0f0f0',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#ff4d4f',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
   },
   timerText: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#FFF',
   },
   divider: {
     height: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#e0e0e0',
     marginVertical: 15,
     marginHorizontal: 15,
   },
@@ -207,6 +226,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginHorizontal: 15,
     marginBottom: 15,
+    color: '#4d4a4a',
   },
   locationRow: {
     flexDirection: 'row',
@@ -214,65 +234,88 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     marginBottom: 15,
   },
-  locationIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 15,
-  },
   locationText: {
-    fontSize: 15,
+    fontSize: 16,
     flex: 1,
+    color: '#4d4a4a',
+    lineHeight: 22,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginHorizontal: 15,
     marginBottom: 10,
+    alignItems: 'center',
   },
   detailLabel: {
-    fontSize: 15,
-    color: 'grey',
+    fontSize: 16,
+    color: '#4d4a4a',
   },
   detailValue: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 'bold',
+    color: '#4d4a4a',
   },
   totalDivider: {
-    height: 1,
-    backgroundColor: 'black',
-    marginVertical: 10,
+    height: 2,
+    backgroundColor: '#000101',
+    marginVertical: 15,
     marginHorizontal: 15,
   },
   totalLabel: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#0e4d5f',
   },
   totalValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#0e4d5f',
+  },
+  bidContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  bidButton: {
+    borderRadius: 20,
+    minWidth: 50,
+  },
+  bidInput: { // New style for the TextInput
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 30,
+    marginHorizontal: 10,
+    backgroundColor: '#161111ff',
+    // color: '#000000ff',
   },
   actions: {
     marginTop: 20,
     paddingHorizontal: 15,
-    paddingBottom: 10,
+    paddingBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   button: {
     flex: 1,
-    borderRadius: 8,
-    height: 45,
+    borderRadius: 10,
+    height: 50,
     justifyContent: 'center',
+    marginHorizontal: 5,
   },
   rejectButton: {
-    backgroundColor: '#E53935', // Red color for reject
-    marginRight: 10,
+    backgroundColor: '#ff4d4f',
   },
   acceptButton: {
-    backgroundColor: '#43A047', // Green color for accept
+    backgroundColor: '#4CAF50',
   },
   buttonLabel: {
-    fontSize: 16,
+    fontSize: 18,
     color: 'white',
+    fontWeight: 'bold',
   },
 });
 
 export default NewOrderScreen;
+

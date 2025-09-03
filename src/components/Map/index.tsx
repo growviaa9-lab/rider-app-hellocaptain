@@ -56,8 +56,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
   onLocationUpdate,
   isOnline = false,
   onToggleOnlineStatus,
-  currentEarnings = '₹3,467.00',
-  driverName = 'Aditya',
+  currentEarnings = '₹00.00',
+  driverName = 'Test user',
   rideRequest,
   onAcceptRide,
   onRejectRide,
@@ -412,7 +412,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         )}
       </View>
 
-      <View style={styles.navigationBar}>
+      {/* <View style={styles.navigationBar}>
         <TouchableOpacity style={styles.navItem}>
           <Text style={[styles.navIcon, styles.activeNavIcon]}>🏠</Text>
           <Text style={[styles.navLabel, styles.activeNavLabel]}>Home</Text>
@@ -432,7 +432,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
           <Text style={styles.navIcon}>👤</Text>
           <Text style={styles.navLabel}>Profile</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       {renderRideRequestModal()}
     </View>
